@@ -14,6 +14,8 @@ Kolacik is a fork of [Strudel](https://strudel.cc/) - a browser-based live codin
 
 ## Running Everything
 
+**At session start, Claude should start both servers:**
+
 ```bash
 # 1. Start the dev server (from kolacik root)
 pnpm dev
@@ -46,6 +48,24 @@ The sync server (running on `ws://localhost:4322`) watches this file and pushes 
 node /Users/jura/Git/kolacik/sync-server.mjs &
 ```
 
+## Error Feedback
+
+Warnings and errors sync back to me via:
+```
+/Users/jura/Git/kolacik/playground.errors
+```
+
+**Check this file after pushing code** to see if something silently failed. Jura also sees a toast notification in the UI.
+
+## Common Gotchas
+
+Things that fail silently in Strudel - watch out for these:
+
+- **`.add(12)` doesn't work** - must wrap in `note()`: `.add(note(12))`
+- **Can't mix samples and notes** - `note("c3, hh")` breaks because `hh` isn't a pitch. Use `stack()` or separate `$:` lines
+- **Out-of-range notes** - `note("c90")` produces silence (TODO: add warning)
+- **Core package changes need hard refresh** - HMR doesn't always pick them up
+
 ## Student Profile: Jura
 
 ### Background
@@ -54,27 +74,25 @@ node /Users/jura/Git/kolacik/sync-server.mjs &
 - 12 years software engineering
 
 ### Already Knows
-- Pattern basics (`s()`, `note()`)
-- Sequencing (`bd hh sd hh`)
-- Repetition (`*4`, `!4`)
-- Subdivision (`[a b]`)
-- Alternation (`<a b c>`)
-- Rests (`~`)
-- Slow/fast timing (`/4`)
-- Filters (lpf, hpf) - understands as signal processing
-- LFO modulation (`sine.range().slow()`) - understands as control signals
-- Method chaining pipeline
+See `what_jura_knows.md` for detailed state. Highlights:
+- All pattern basics (sequencing, subdivision, alternation, rests)
+- Euclidean rhythms, polymetric, struct, mask, iter, every
+- Effects: off, jux, delay, echo, filters
+- Notes: letter notation, scale indices, add (with note wrapper), arp
+- Layering: stack, multiple $: lines
 
 ### To Learn
-- [ ] Polymetric rhythms `{a b c}%2` - fitting N events into M slots
-- [ ] Euclidean rhythms `a(3,8)` - distributing hits evenly across steps
+- [ ] Chords - what they are, how to construct them
+- [ ] More effects beyond filter/delay
+- [ ] Control patterns in depth
 
 ### Understood Conceptually, Not Used Yet
-- [ ] Random choice `a|b`
-- [ ] Probability `a?`
+- Random choice `a|b`, probability `a?`
+- LFO modulation `sine.range().slow()`
+- `.chop()` for sample slicing
 
 ## Teaching Approach
-- Skip music theory jargon - use signal processing analogies
+- Teach music theory as needed - Jura wants to learn it, just starts from zero. Use signal processing analogies where helpful.
 - Be direct, no hand-holding
 - Push examples directly to REPL via playground.strudel
 - Let him experiment and build intuition

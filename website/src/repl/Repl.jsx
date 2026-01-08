@@ -10,11 +10,30 @@ import ReplEditor from './components/ReplEditor';
 import EmbeddedReplEditor from './components/EmbeddedReplEditor';
 import { useReplContext } from './useReplContext';
 import { useSettings } from '@src/settings.mjs';
+import { useStore } from '@nanostores/react';
+import { $toast, useLogger } from './components/useLogger';
+
+function Toast() {
+  const toast = useStore($toast);
+  if (!toast) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 max-w-md px-4 py-3 rounded-lg shadow-lg bg-orange-600 text-white font-mono text-sm animate-pulse">
+      {toast.message}
+    </div>
+  );
+}
 
 export function Repl({ embedded = false }) {
   const isEmbedded = embedded || isIframe();
   const Editor = isUdels() ? UdelsEditor : isEmbedded ? EmbeddedReplEditor : ReplEditor;
   const context = useReplContext();
   const { fontFamily } = useSettings();
-  return <Editor context={context} style={{ fontFamily }} />;
+  useLogger(); // Always listen for warnings/errors
+  return (
+    <>
+      <Toast />
+      <Editor context={context} style={{ fontFamily }} />
+    </>
+  );
 }

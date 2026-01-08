@@ -10,7 +10,7 @@ import { logger } from './logger.mjs';
 export function unionWithObj(a, b, func) {
   if (b?.value !== undefined && Object.keys(b).length === 1) {
     // https://codeberg.org/uzu/strudel/issues/1026
-    logger(`[warn]: Can't do arithmetic on control pattern.`);
+    logger(`[warn]: Can't do arithmetic on control pattern. Use note() wrapper, e.g. .add(note(12))`, 'warn');
     return a;
   }
   const common = Object.keys(a).filter((k) => Object.keys(b).includes(k));

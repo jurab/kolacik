@@ -57,3 +57,9 @@ export function sendCode(content) {
     ws.send(JSON.stringify({ type: 'code', content }));
   }
 }
+
+export function sendError(message, type = 'error') {
+  if (ws?.readyState === 1) {
+    ws.send(JSON.stringify({ type, message }));
+  }
+}

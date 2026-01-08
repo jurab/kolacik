@@ -2,6 +2,7 @@ import useEvent from '@src/useEvent.mjs';
 import { logger } from '@strudel/core';
 import { nanoid } from 'nanoid';
 import { atom } from 'nanostores';
+import { sendError } from '../sync.mjs';
 
 export const $strudel_log_history = atom([]);
 
@@ -24,10 +25,21 @@ function getUpdatedLog(log, event) {
   return log.slice(-20);
 }
 
+// Store for toast notifications
+export const $toast = atom(null);
+
 export function useLogger() {
   useLoggerEvent((event) => {
     const log = $strudel_log_history.get();
     const newLog = getUpdatedLog(log, event);
     $strudel_log_history.set(newLog);
+
+    // Forward warnings/errors to sync server and show toast
+    const { message, type } = event.detail;
+    if (message?.includes('[warn]') || type === 'warn' || type === 'error') {
+      sendError(message, type || 'warn');
+      $toast.set({ message, type: type || 'warn' });
+      setTimeout(() => $toast.set(null), 4000);
+    }
   });
 }

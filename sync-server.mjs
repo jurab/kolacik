@@ -3,6 +3,7 @@ import { watchFile } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 
 const PLAYGROUND_FILE = './playground.strudel';
+const ERRORS_FILE = './playground.errors';
 const PORT = 4322;
 
 const wss = new WebSocketServer({ port: PORT });
@@ -61,6 +62,11 @@ wss.on('connection', async (ws) => {
         ignoreNextFileChange = true;
         await writeFile(PLAYGROUND_FILE, msg.content);
         console.log('💾 Saved from browser');
+      } else if (msg.type === 'error' || msg.type === 'warn') {
+        const timestamp = new Date().toISOString().slice(11, 19);
+        const line = `[${timestamp}] ${msg.type.toUpperCase()}: ${msg.message}\n`;
+        await writeFile(ERRORS_FILE, line);
+        console.log(`⚠️  ${msg.type}: ${msg.message}`);
       }
     } catch (e) {
       console.error('Parse error:', e);

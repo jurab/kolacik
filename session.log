@@ -31,3 +31,35 @@ pnpm dev
 node sync-server.mjs &
 # open localhost:4321
 ```
+
+## 2026-01-08 - Session 2: Quiz & Error Feedback
+
+### What We Did
+- Ran quiz to assess Jura's knowledge - he knows more than documented
+- Built bidirectional error sync system:
+  - `playground.errors` - warnings/errors written here so Claude can see them
+  - Toast notifications in UI (bottom-right, orange)
+  - Modified `useLogger.jsx` to forward warnings to sync server
+  - Modified `sync-server.mjs` to write errors to file
+  - Modified `value.mjs` to give helpful error message for `.add()` gotcha
+
+### Key Technical Findings
+- `.add(12)` silently fails - must use `.add(note(12))`
+- Can't mix samples and notes in same `note()` pattern - use `stack()` or separate `$:` lines
+- Out-of-range notes (like `c90`) fail silently - TODO: add warning
+- HMR doesn't always reload core package changes - need hard refresh
+- `useLogger` hook was only active when Panel was open - moved to Repl.jsx
+
+### Files Modified
+- `sync-server.mjs` - added error message handling
+- `website/src/repl/sync.mjs` - added `sendError()` function
+- `website/src/repl/components/useLogger.jsx` - forward warnings to sync + toast
+- `website/src/repl/Repl.jsx` - added Toast component, call useLogger always
+- `packages/core/value.mjs` - improved warning message with fix hint
+
+### Files Created
+- `playground.errors` - error sync file
+
+### Next Session
+- Continue learning: scales, chords, more effects
+- Add validation for out-of-range notes
