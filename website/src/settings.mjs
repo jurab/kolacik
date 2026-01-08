@@ -3,6 +3,8 @@ import { useStore } from '@nanostores/react';
 import { register } from '@strudel/core';
 import { isUdels } from './repl/util.mjs';
 
+console.log('🍪 KOLACIK settings.mjs loaded');
+
 export const audioEngineTargets = {
   webaudio: 'webaudio',
   osc: 'osc',
@@ -32,8 +34,8 @@ export const defaultSettings = {
   isPatternHighlightingEnabled: true,
   isTabIndentationEnabled: false,
   isMultiCursorEnabled: false,
-  theme: 'strudelTheme',
-  fontFamily: 'monospace',
+  theme: 'kolacik',
+  fontFamily: '"Operator Mono SSm Lig", monospace',
   fontSize: 18,
   latestCode: '',
   isZen: false,

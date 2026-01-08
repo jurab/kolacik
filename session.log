@@ -1,0 +1,33 @@
+# Kolacik Session Log
+
+## 2026-01-08 - Initial Setup
+
+### What We Did
+- Forked Strudel from codeberg.org/uzu/strudel
+- Created kolacik theme (near-black background, Operator Mono font, orange keywords, teal strings)
+- Built live sync system: Claude can push code to browser via playground.strudel
+- Started learning Strudel basics
+
+### Live Sync Architecture
+- `sync-server.mjs` - WebSocket server on port 4322, watches playground.strudel
+- `website/src/repl/sync.mjs` - client that connects and syncs with editor
+- Modified `useReplContext.jsx` to hook into sync
+
+### Files Created
+- `playground.strudel` - live code scratchpad
+- `sync-server.mjs` - sync server
+- `claude.md` - teaching instructions
+- `what_jura_knows.md` - knowledge state
+- `plan.md` - learning plan
+- `packages/codemirror/themes/kolacik.mjs` - custom theme
+
+### Jura's Progress
+- Learned: euclidean rhythms, polymetric, struct, off vs delay, wet/dry
+- Next: scales, notes, .add(), more pattern modifiers
+
+### To Start Dev
+```bash
+pnpm dev
+node sync-server.mjs &
+# open localhost:4321
+```

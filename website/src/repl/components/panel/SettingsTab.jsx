@@ -67,7 +67,9 @@ function FormItem({ label, children, sublabel }) {
 }
 
 const themeOptions = Object.fromEntries(Object.keys(themes).map((k) => [k, k]));
+console.log('🍪 KOLACIK SettingsTab themeOptions:', Object.keys(themeOptions).slice(0, 10));
 const fontFamilyOptions = {
+  '"Operator Mono SSm Lig", monospace': 'Operator Mono',
   monospace: 'monospace',
   Courier: 'Courier',
   CutiePi: 'CutiePi',

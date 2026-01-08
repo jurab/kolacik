@@ -1,4 +1,7 @@
 import strudelTheme, { settings as strudelThemeSettings } from './themes/strudel-theme.mjs';
+import kolacik, { settings as kolacikSettings } from './themes/kolacik.mjs';
+
+console.log('🍪 KOLACIK themes.mjs loaded, kolacik theme:', !!kolacik, 'keys:', Object.keys({ kolacik, strudelTheme }).slice(0, 5));
 import bluescreen, { settings as bluescreenSettings } from './themes/bluescreen.mjs';
 import blackscreen, { settings as blackscreenSettings } from './themes/blackscreen.mjs';
 import whitescreen, { settings as whitescreenSettings } from './themes/whitescreen.mjs';
@@ -42,6 +45,7 @@ import noctisLilac, { settings as noctisLilacSettings } from './themes/noctisLil
 
 import { setTheme } from '@strudel/draw';
 export const themes = {
+  kolacik,
   strudelTheme,
   algoboy,
   archBtw,
@@ -83,7 +87,10 @@ export const themes = {
   xcodeLight,
 };
 
+console.log('🍪 KOLACIK all theme keys:', Object.keys(themes).slice(0, 10));
+
 export const settings = {
+  kolacik: kolacikSettings,
   strudelTheme: strudelThemeSettings,
   bluescreen: bluescreenSettings,
   bluescreenlight: bluescreenlightsettings,

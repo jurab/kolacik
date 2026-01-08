@@ -39,6 +39,7 @@ import './Repl.css';
 import { setInterval, clearInterval } from 'worker-timers';
 import { getMetadata } from '../metadata_parser';
 import { debugAudiograph } from './audiograph';
+import { initSync, sendCode } from './sync.mjs';
 
 const { latestCode, maxPolyphony, audioDeviceName, multiChannelOrbits } = settingsMap.get();
 let modulesLoading, presets, drawContext, clearCanvas, audioReady;
@@ -107,6 +108,7 @@ export function useReplContext() {
         window.parent?.postMessage(code);
 
         setLatestCode(code);
+        sendCode(code);
         window.location.hash = '#' + code2hash(code);
         setDocumentTitle(code);
         const viewingPatternData = getViewingPatternData();
@@ -133,6 +135,7 @@ export function useReplContext() {
     });
     window.strudelMirror = editor;
     window.debugAudiograph = debugAudiograph;
+    initSync(editor);
 
     // init settings
     initCode().then(async (decoded) => {

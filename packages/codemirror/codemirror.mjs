@@ -63,8 +63,8 @@ export const defaultSettings = {
   isLineWrappingEnabled: false,
   isTabIndentationEnabled: false,
   isMultiCursorEnabled: false,
-  theme: 'strudelTheme',
-  fontFamily: 'monospace',
+  theme: 'kolacik',
+  fontFamily: '"Operator Mono SSm Lig", monospace',
   fontSize: 18,
 };
 
