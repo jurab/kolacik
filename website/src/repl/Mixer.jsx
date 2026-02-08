@@ -553,9 +553,9 @@ export function Mixer() {
   const sortedTrackIds = Object.keys(tracks).sort();
 
   return (
-    <div className="h-app-height bg-background flex flex-col text-foreground">
+    <div className="bg-background text-foreground">
       {/* Top bar */}
-      <div className="flex items-center gap-2 px-4 py-2 bg-lineHighlight border-b border-lineHighlight shrink-0">
+      <div className="fixed top-0 left-0 right-0 z-10 flex items-center gap-2 px-4 py-2 border-b border-lineHighlight" style={{ backgroundColor: '#1a1a1a' }}>
         <span className="font-mono text-sm font-bold mr-2">kolacik mixer</span>
 
         <button
@@ -611,7 +611,7 @@ export function Mixer() {
       </div>
 
       {/* Track panels */}
-      <div className="flex-1 overflow-auto p-4 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-3" style={{ marginTop: '3rem' }}>
         {sortedTrackIds.map((id) => (
           <TrackPanel
             key={id}

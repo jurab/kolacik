@@ -225,8 +225,53 @@ Simple string concatenation: reads all track files, skips muted/non-soloed, appe
 10 tracks all in D minor: kick, snare, hats, clap, perc, bass, chords, pad, melody, arp
 
 ### Next Steps
-- Visualization per track (pianoroll/punchcard)
+- ~~Visualization per track (pianoroll/punchcard)~~ ✓
 - Track renaming in UI
 - Drag to reorder tracks
 - Record/export compiled output
 - Sample loading UI
+
+## 2026-02-08 - Session 7: Visualization, Highlighting & Artifacts
+
+### What We Did
+- **Per-track visualization + highlighting**: Replaced `initEditor` with full `StrudelMirror` per track
+  - Silent output (`defaultOutput: async () => {}`) — per-track repls evaluate patterns but produce no audio
+  - Mini-notation highlighting animates automatically via StrudelMirror's Drawer
+  - Per-track canvas positioned behind editor (absolute + z-index layering)
+  - `editPattern` callback injects visualization painters based on dropdown selection
+  - Per-track repls start/stop in sync with master via `started` prop
+  - Code changes debounced at 500ms, re-evaluate for live updating visualization
+- **5 visualization types**: pianoroll, punchcard, wordfall (vertical+labels), smear (trail effect), active-only
+- **Mouse-reactive LPF**: Global FX uses `mousex.range(200, 8000)` — Strudel has built-in `mouseX`/`mouseY` signals (0-1 range from mouse position)
+- **Track groups** (from earlier): Number keys 0-9 toggle mute for grouped tracks
+- **Mute all button**
+- **Artifact system** for multi-track pieces:
+  - Format: directory with `tracks/*.strudel` + `mix.json`
+  - `save-piece.sh <name>` and `load-piece.sh <name>` scripts
+  - First multi-track artifact: `05-d-minor-multitrack` (11 tracks, D minor)
+  - `artifacts/README.md` documents the format
+
+### Key Technical Findings
+- `StrudelMirror` overrides font size to its default (18px) — must call `mirror.setFontSize(14)` after construction
+- `.cm-scroller` needs explicit `maxHeight` + `overflow: auto` to constrain CodeMirror height within a panel
+- `Object.defineProperty` on `mirror.code` cleanly intercepts StrudelMirror's internal code changes without modifying the library
+- `.gitignore` `tracks/` matches ANY `tracks/` dir (including inside artifacts) — fixed to `/tracks/` (root only)
+- `getPunchcardPainter({ fold: 0 })` = pianoroll as a Drawer-pipeline painter (unlike `.pianoroll()` which has its own animation loop)
+- Strudel's `mousex`/`mousey` are already built-in signals in `@strudel/core/signal.mjs` — no custom code needed
+
+### Files Modified
+- `website/src/repl/Mixer.jsx` — major rewrite of TrackPanel (initEditor → StrudelMirror), viz types, mouse LPF
+- `.gitignore` — `/tracks/` instead of `tracks/` to allow artifact subdirs
+
+### Files Created
+- `artifacts/05-d-minor-multitrack/` — first multi-track artifact (11 tracks + mix.json)
+- `artifacts/README.md` — artifact format documentation
+- `save-piece.sh` — save current mixer state as named artifact
+- `load-piece.sh` — load saved artifact into mixer
+
+### Next Steps
+- Track renaming in UI
+- Drag to reorder tracks
+- Record/export compiled output
+- Sample loading UI
+- Per-track volume/gain control

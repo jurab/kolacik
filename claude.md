@@ -73,6 +73,34 @@ Warnings and errors sync back to me via:
 
 **Check this file after pushing code** to see if something silently failed. Jura also sees a toast notification in the UI.
 
+## Mixer Interface
+
+Multi-track mixer at `http://localhost:4321/mixer`. Each track is a `.strudel` file in `/tracks/`.
+
+### How It Works
+- `sync-server.mjs` watches `/tracks/*.strudel` + `mix.json`, compiles them into `mix.strudel`
+- Browser connects via WebSocket, receives tracks + compiled code
+- Hidden master `StrudelMirror` handles all audio; per-track editors show code + visualization
+- Mute/solo per track, number keys toggle groups, BPM control, global FX editor
+
+### Writing Tracks from CLI
+- Each track file needs a `$:` prefix: `$: stack(s("bd"), s("sd"))` — bare `stack()` won't play
+- **Do NOT use `sed` in bash** — it's aliased to `sd` (a different tool) on this system. Use the Write/Edit tools or python for file modifications.
+- After writing tracks, verify with `cat mix.strudel` that all tracks compiled
+- If tracks disappear: restart sync server (`kill` + `node sync-server.mjs &`), then refresh browser
+- macOS `fs.watch` can get confused by rapid file writes. The watcher has a 300ms debounce + ENOENT retry, but if many files are written simultaneously it can still lose tracks. Write files via the Write tool (which is sequential) rather than parallel bash commands.
+
+### Artifacts (save/load pieces)
+- `./save-piece.sh <name>` — saves current tracks + mix.json to `artifacts/<name>/`
+- `./load-piece.sh <name>` — loads saved piece into `/tracks/`
+
+### Troubleshooting
+- **Tracks disappear from mixer**: The macOS fs.watch watcher got confused. Restart sync server, refresh browser.
+- **Editors show but are empty**: Likely stale WebSocket state. Restart sync server, refresh browser.
+- **"webpage reloaded because a problem occurred"**: Safari tab crashed, probably a StrudelMirror init error. Restart astro dev server (`pnpm dev`), then reload.
+- **Astro dev server dies silently**: Check with `pgrep -f astro`. If dead, restart with `pnpm dev`.
+- **Browser console empty on mixer page**: Component isn't mounting. Restart astro dev server.
+
 ## Common Gotchas
 
 Things that fail silently in Strudel - watch out for these:
@@ -81,6 +109,18 @@ Things that fail silently in Strudel - watch out for these:
 - **Can't mix samples and notes** - `note("c3, hh")` breaks because `hh` isn't a pitch. Use `stack()` or separate `$:` lines
 - **Out-of-range notes** - `note("c90")` produces silence (TODO: add warning)
 - **Core package changes need hard refresh** - HMR doesn't always pick them up
+
+### Mini-Notation Traps
+- **`.` is NOT a rest** — it means "elongate previous event." Use `~` for rests.
+  - WRONG: `struct("x.x.x.x.")` — the `.` extends each `x`, everything is true
+  - RIGHT: `struct("x ~ x ~ x ~ x ~")` or just spell out the pattern directly
+- **For 16-step drum grids**, use explicit mini-notation with `~` for rests:
+  ```
+  s("bd ~ ~ bd ~ ~ bd ~ bd ~ ~ ~ bd ~ ~ ~")
+  ```
+  Each position = one 16th note. This maps 1:1 to drum machine grid notation.
+- **Don't bake `._punchcard()` into track code** for the mixer — 8 tracks each running their own punchcard visualization crashes Safari. Use the per-track viz dropdown instead.
+- **Visualizations in mixer tracks**: The per-track StrudelMirror in the mixer evaluates code for highlighting. Heavy visualization methods in the code itself (punchcard, pianoroll) multiply across all tracks and crash the browser.
 
 ## Student Profile: Jura
 

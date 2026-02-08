@@ -139,6 +139,7 @@ function compileAndBroadcast() {
 
 // Watch tracks directory for file changes
 // Debounce per-file to avoid macOS fs.watch double-firing
+// macOS fires rename events during rapid writes — retry before assuming deletion
 const trackWatchTimers = {};
 watch(TRACKS_DIR, (eventType, filename) => {
   if (!filename?.endsWith('.strudel')) return;
@@ -149,12 +150,12 @@ watch(TRACKS_DIR, (eventType, filename) => {
     return;
   }
 
-  // Debounce: wait 100ms for file to settle
+  // Debounce: wait 300ms for file to settle (macOS needs more time during write storms)
   if (trackWatchTimers[id]) clearTimeout(trackWatchTimers[id]);
   trackWatchTimers[id] = setTimeout(async () => {
     const filepath = join(TRACKS_DIR, filename);
     try {
-      await stat(filepath); // check file exists
+      await stat(filepath);
       const code = await readFile(filepath, 'utf-8');
       if (tracks[id] !== code) {
         tracks[id] = code;
@@ -163,15 +164,30 @@ watch(TRACKS_DIR, (eventType, filename) => {
         compileAndBroadcast();
       }
     } catch (err) {
-      // Only treat as deleted if file truly doesn't exist
       if (err.code === 'ENOENT' && tracks[id] !== undefined) {
-        delete tracks[id];
-        console.log(`🗑️  Track "${id}" removed`);
-        broadcast({ type: 'mixer:track:removed', id });
-        compileAndBroadcast();
+        // Retry after 500ms — macOS fires transient ENOENT during write storms
+        setTimeout(async () => {
+          try {
+            await stat(filepath);
+            // File is back — was a transient failure, ignore
+            const code = await readFile(filepath, 'utf-8');
+            if (tracks[id] !== code) {
+              tracks[id] = code;
+              broadcast({ type: 'mixer:track', id, code });
+              compileAndBroadcast();
+            }
+          } catch (err2) {
+            if (err2.code === 'ENOENT') {
+              delete tracks[id];
+              console.log(`🗑️  Track "${id}" removed`);
+              broadcast({ type: 'mixer:track:removed', id });
+              compileAndBroadcast();
+            }
+          }
+        }, 500);
       }
     }
-  }, 100);
+  }, 300);
 });
 
 // Watch mix state file
