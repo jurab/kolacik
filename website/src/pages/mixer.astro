@@ -1,0 +1,14 @@
+---
+import HeadCommon from '../components/HeadCommon.astro';
+import { Mixer } from '../repl/Mixer';
+---
+
+<html lang="en" class="m-0 dark">
+  <head>
+    <HeadCommon />
+    <title>Kolacik Mixer</title>
+  </head>
+  <body class="h-app-height bg-background m-0">
+    <Mixer client:only="react" />
+  </body>
+</html>

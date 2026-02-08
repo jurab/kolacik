@@ -1,0 +1,71 @@
+/* @title    Heartbeat (adapted)
+   @by       DJ_Dave (original) */
+
+// ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡ ♡
+
+setCps(150/60/4)
+
+const Structures = [
+  "{x ~!6 x ~ ~ x ~!3 x ~}%16",
+  "{x [x]}",
+  "{~}",
+]
+
+const PG = [
+  "{0.3 0.816 0.3 0.812 0.3 0.813 0.3 1}",
+  "{0.3 0.818}",
+  "{0.8}",
+]
+
+const beat = 1
+//0-2
+
+// DRUMS
+$: stack(
+  s("bd").bank("RolandTR909").postgain(5).pcurve(2).pdec(1).struct(pick(Structures, beat)),
+  s("[~ cp]").bank("KorgDDM110").speed(1).fast(2).postgain(0.15).lpf(3000),
+  // ---
+  // ---
+
+  s("hh").struct("[x!3 ~!2 x!10 ~]").postgain(0.5).bank("RolandTR808").speed(1.25).jux(rev).room(sine.range(0.1, 0.4)).gain(0.6),
+  s("~ hh").bank("RolandTR808").room(0.7).speed(0.75).gain(0.5).fast(4),
+)
+  ._punchcard({width: 600})
+
+// BASSLINE
+$: note("f#3@8 c#3@3 d3@5 a3@8 c#3@3 d3@5 f#2@8 c#3@3 d3@5 d2@8 d3@3 c#3@5".slow(8))
+  .struct("x*16")
+  .sustain(0.5)
+  .sound("[square, sawtooth]")
+  .transpose("[-12, 0]")
+  .coarse(2)
+  .decay(0.075).gain(0.75).hpf(150)
+  .lpf(mouseX.segment(4).range(350,2000))
+  // .lpf(slider(350, 350, 2000))
+  .postgain(pick(PG, beat))
+  ._punchcard({width: 600})
+
+// VOXCHOP1 - piano chop (original uses heartbeat:0)
+$: note("<[c4 e4 g4 c5] [a3 c4 e4 a4]>".slow(2))
+  .s("piano")
+  .slice(8, "<5 6>".fast(2))
+  .chop(32).cut(1).loopAt(4)
+  .room(2)
+  .gain("<0.6 1.6>".slow(2))
+  // .lpf(slider(4000, 600, 4000))
+  .lpf(mouseX.segment(4).range(350,2000))
+  .postgain(pick(PG, beat))
+  ._scope({width: 600})
+
+// VOXCHOP2 - sax chop (original uses heartbeat:<1 0>)
+$: note("<a3 e4>".slow(2))
+  .s("sax")
+  .striate("<2 4>".slow(2)).ply("[4|8]".fast(8))
+  .note("a1")
+  .phaser(8).room(2).rfade(30)
+  .cut(1).clip(1)
+  // .lpf(slider(5000, 600, 5000))
+  .lpf(mouseX.segment(4).range(350,2000))
+  .postgain(1.75)
+  .room(1)
+  ._scope({width: 600})

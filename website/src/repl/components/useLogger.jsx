@@ -36,9 +36,10 @@ export function useLogger() {
 
     // Forward warnings/errors to sync server and show toast
     const { message, type } = event.detail;
-    if (message?.includes('[warn]') || type === 'warn' || type === 'error') {
-      sendError(message, type || 'warn');
-      $toast.set({ message, type: type || 'warn' });
+    if (message?.includes('[warn]') || message?.includes('error:') || type === 'warn' || type === 'error') {
+      const msgType = type || (message?.includes('error:') ? 'error' : 'warn');
+      sendError(message, msgType);
+      $toast.set({ message, type: msgType });
       setTimeout(() => $toast.set(null), 4000);
     }
   });

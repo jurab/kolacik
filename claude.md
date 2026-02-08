@@ -48,6 +48,22 @@ The sync server (running on `ws://localhost:4322`) watches this file and pushes 
 node /Users/jura/Git/kolacik/sync-server.mjs &
 ```
 
+## Play/Pause Control
+
+Claude can trigger play/stop/toggle by writing to:
+```
+/Users/jura/Git/kolacik/playground.cmd
+```
+
+Format is `command:timestamp` — the timestamp ensures the same command can be sent twice (file watcher ignores unchanged content). Valid commands: `play`, `stop`, `toggle`.
+
+```bash
+# Example: trigger play
+echo "play:1" > playground.cmd
+```
+
+The sync server clears the file after processing. Increment the timestamp for repeated commands (e.g. `play:1`, `play:2`, etc.).
+
 ## Error Feedback
 
 Warnings and errors sync back to me via:
@@ -88,8 +104,16 @@ See `what_jura_knows.md` for detailed state. Highlights:
 
 ### Understood Conceptually, Not Used Yet
 - Random choice `a|b`, probability `a?`
-- LFO modulation `sine.range().slow()`
-- `.chop()` for sample slicing
+
+### Seen Claude Use, Not Practiced Yet
+- LFO modulation `sine.range().slow()`, `saw.range()`
+- `.chop()` for granular sample slicing
+- `slider(value, min, max)` for interactive UI controls
+- `mix.range(from, to)` for mapping slider to parameter ranges
+- Song structure with `<>.slow(N)` for sequential sections
+- `.shape()` for distortion/saturation
+- `.orbit()` for separate effect buses
+- Artifacts saved in `artifacts/02-techno-drop/` and `artifacts/03-stutter-crossfade/` to study
 
 ## Teaching Approach
 - Teach music theory as needed - Jura wants to learn it, just starts from zero. Use signal processing analogies where helpful.
@@ -102,3 +126,17 @@ See `what_jura_knows.md` for detailed state. Highlights:
   - `._pianoroll()` - melodies, notes
   - `._scope()` - waveforms, signal stuff
   - `._spiral()` - cyclical patterns
+
+### Critical: One Concept at a Time
+When teaching music theory (or any new domain), go **ONE CONCEPT AT A TIME**:
+1. Introduce ONE idea
+2. Push a sound example that demonstrates it
+3. Let Jura experiment
+4. Only then move to the next concept
+
+If you dump multiple concepts at once (e.g., "key = home + scale + major/minor + sharps/flats"), Jura will say "one thing at a time man" and you'll have to backtrack. Demonstrate with SOUND before explaining with words - his ear learns faster than reading explanations.
+
+Use analogies to his domain when possible:
+- Harmony/tension → dynamical systems, equilibrium states
+- Home note → attractor
+- Progression → trajectory through state space

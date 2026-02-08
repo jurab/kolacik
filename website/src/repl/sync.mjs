@@ -27,6 +27,15 @@ function connect() {
           ignoreNextUpdate = true;
           editor.setCode(msg.content);
           lastSentContent = msg.content;
+        } else if (msg.type === 'play') {
+          console.log('🍪 Play from sync');
+          editor.evaluate();
+        } else if (msg.type === 'stop') {
+          console.log('🍪 Stop from sync');
+          editor.repl?.scheduler?.stop();
+        } else if (msg.type === 'toggle') {
+          console.log('🍪 Toggle from sync');
+          editor.toggle();
         }
       } catch (e) {
         console.error('Sync parse error:', e);

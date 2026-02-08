@@ -1,0 +1,83 @@
+// techno buildup → drop (8 cycle loop: 4 build, 4 drop)
+setcps(140/60/4)
+
+stack(
+  // kick - sparse in buildup, four-on-floor on drop
+  s("<[~ ~ bd ~] [~ ~ bd ~] [~ ~ bd bd] [bd ~ bd bd] bd*4 bd*4 bd*4 bd*4>")
+    .bank("RolandTR909")
+    .gain("<0.6 0.7 0.8 1 1.2 1.2 1.2 1.2>")
+    .shape("<0 0 0.1 0.2 0.5 0.5 0.5 0.5>"),
+
+  // hats - 8ths building to 16ths on drop
+  s("<hh*4 hh*8 hh*8 hh*12 hh*16 hh*16 hh*16 hh*16>")
+    .bank("RolandTR909")
+    .gain("<0.2 0.3 0.4 0.5 0.5 0.5 0.5 0.5>")
+    .lpf("<2000 3000 5000 7000 9000 9000 9000 9000>")
+    .pan(sine.range(0.3, 0.7).slow(3)),
+
+  // clap - only on drop
+  s("<~ ~ ~ [~ cp ~ cp] [~ cp ~ cp] [~ cp ~ cp] [~ cp ~ cp] [~ cp ~ cp]>")
+    .bank("RolandTR909")
+    .gain(0.8)
+    .room(0.3),
+
+  // ride on drop
+  s("<~ ~ ~ ~ [~ oh ~ oh] [~ oh ~ oh] [~ oh ~ oh] [~ oh ~ oh]>")
+    .bank("RolandTR909")
+    .gain(0.4),
+
+  // bass - filtered during build, OPENS on drop
+  note("<c1 c1 c1 c1 c1 c1 eb1 f1>")
+    .s("sawtooth")
+    .lpf("<200 400 800 1200 4000 4000 3000 2500>")
+    .lpq("<4 6 8 10 12 8 8 8>")
+    .decay(0.3)
+    .sustain(0.1)
+    .gain("<0.4 0.5 0.6 0.7 0.9 0.9 0.9 0.9>")
+    .shape("<0.1 0.2 0.3 0.4 0.6 0.6 0.6 0.6>"),
+
+  // riser noise during buildup, cuts on drop
+  s("<white white white white ~ ~ ~ ~>")
+    .lpf(saw.range(200, 8000).slow(4))
+    .gain("<0.05 0.08 0.12 0.18 0 0 0 0>"),
+
+  // stab - only hits on the drop for impact
+  note("<~ ~ ~ ~ [c3,eb3,g3] ~ [f3,ab3,c4] ~>")
+    .s("square")
+    .lpf(1800)
+    .decay(0.15)
+    .sustain(0)
+    .gain(0.5)
+    .delay(0.25)
+    .delaytime(0.375)
+    .room(0.4),
+
+  // HARD LPF HITS - echoing percussive stabs on the drop
+  note("<~ ~ ~ ~ [c2 ~ eb2 ~] [~ c2 ~ f2] [c2 ~ ~ eb2] [f2 ~ c2 ~]>")
+    .s("sawtooth")
+    .lpf(6000)
+    .lpq(15)
+    .decay(0.08)
+    .sustain(0)
+    .gain(0.7)
+    .shape(0.6)
+    .delay(0.5)
+    .delaytime(0.1875)
+    .delayfeedback(0.6)
+    .orbit(2),
+
+  // metallic zap hits on drop downbeats
+  note("<~ ~ ~ ~ c4 ~ c4 ~>")
+    .s("square")
+    .lpf(8000)
+    .lpq(20)
+    .decay(0.03)
+    .sustain(0)
+    .gain(0.4)
+    .shape(0.7)
+    .delay(0.6)
+    .delaytime(0.09375)
+    .delayfeedback(0.5)
+    .pan(0.7)
+    .orbit(3)
+)._scope()
