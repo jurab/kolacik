@@ -31,7 +31,7 @@ if (typeof window !== 'undefined') {
 // Track Editor — one CodeMirror per track
 // ============================================================
 
-function TrackPanel({ id, code, muted, solo, onCodeChange, onMute, onSolo, onRemove }) {
+function TrackPanel({ id, code, muted, solo, group, onCodeChange, onMute, onSolo, onRemove, onGroupChange }) {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
   const codeRef = useRef(code);
@@ -68,7 +68,18 @@ function TrackPanel({ id, code, muted, solo, onCodeChange, onMute, onSolo, onRem
     <div className={`border border-lineHighlight rounded-md overflow-hidden ${muted ? 'opacity-40' : ''}`}>
       <div className="flex items-center justify-between bg-lineHighlight px-3 py-1.5">
         <span className="text-foreground font-mono text-sm font-bold">{id}</span>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          <select
+            value={group ?? ''}
+            onChange={(e) => onGroupChange(id, e.target.value === '' ? null : Number(e.target.value))}
+            className="w-10 px-0.5 py-0.5 rounded text-xs font-mono bg-background text-foreground border border-lineHighlight cursor-pointer text-center appearance-none"
+            title="Group (press number key to toggle mute)"
+          >
+            <option value="">-</option>
+            {[0,1,2,3,4,5,6,7,8,9].map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
           <button
             onClick={() => onMute(id)}
             className={`px-2 py-0.5 rounded text-xs font-mono cursor-pointer ${
@@ -158,7 +169,7 @@ function GlobalFxEditor({ code, onChange }) {
 
 export function Mixer() {
   const [tracks, setTracks] = useState({});      // { id: code }
-  const [mixState, setMixState] = useState({ muted: [], solo: [], bpm: null, globalFx: '' });
+  const [mixState, setMixState] = useState({ muted: [], solo: [], bpm: null, globalFx: '', groups: {} });
   const [started, setStarted] = useState(false);
   const [connected, setConnected] = useState(false);
   const masterRef = useRef(null);
@@ -199,7 +210,7 @@ export function Mixer() {
   const handleSyncMessage = useCallback((msg) => {
     if (msg.type === 'mixer:init') {
       setTracks(msg.tracks || {});
-      setMixState(msg.state || { muted: [], solo: [], bpm: null, globalFx: '' });
+      setMixState(msg.state || { muted: [], solo: [], bpm: null, globalFx: '', groups: {} });
       setConnected(true);
       // Evaluate compiled code if we have it
       if (msg.compiled && masterRef.current) {
@@ -316,6 +327,60 @@ export function Mixer() {
     });
   }, []);
 
+  // Group assignment
+  const handleGroupChange = useCallback((id, group) => {
+    setMixState(prev => {
+      const groups = { ...prev.groups };
+      if (group === null) {
+        delete groups[id];
+      } else {
+        groups[id] = group;
+      }
+      const next = { ...prev, groups };
+      sendMixerState(next);
+      return next;
+    });
+  }, []);
+
+  // Keyboard: number keys toggle mute for track groups
+  const mixStateRef = useRef(mixState);
+  mixStateRef.current = mixState;
+  const tracksRef = useRef(tracks);
+  tracksRef.current = tracks;
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't fire when typing in an input/editor
+      if (e.target.closest('.cm-editor, input, select, textarea')) return;
+
+      const key = e.key;
+      if (key >= '0' && key <= '9') {
+        const group = Number(key);
+        const state = mixStateRef.current;
+        const groups = state.groups || {};
+        // Find all tracks in this group
+        const trackIds = Object.keys(tracksRef.current).filter(id => groups[id] === group);
+        if (trackIds.length === 0) return;
+
+        // Toggle: if any are unmuted, mute all; if all muted, unmute all
+        const anyUnmuted = trackIds.some(id => !state.muted.includes(id));
+        let muted;
+        if (anyUnmuted) {
+          // Mute all in group
+          muted = [...new Set([...state.muted, ...trackIds])];
+        } else {
+          // Unmute all in group
+          muted = state.muted.filter(id => !trackIds.includes(id));
+        }
+        const next = { ...state, muted };
+        setMixState(next);
+        sendMixerState(next);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Transport
   const handlePlayAll = useCallback(() => {
     if (masterRef.current) {
@@ -381,6 +446,21 @@ export function Mixer() {
         </div>
 
         <button
+          onClick={() => {
+            setMixState(prev => {
+              const allIds = Object.keys(tracks);
+              const allMuted = allIds.every(id => prev.muted.includes(id));
+              const next = { ...prev, muted: allMuted ? [] : [...allIds] };
+              sendMixerState(next);
+              return next;
+            });
+          }}
+          className="px-3 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-red-700 cursor-pointer"
+        >
+          mute all
+        </button>
+
+        <button
           onClick={handleAddTrack}
           className="px-3 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-green-700 cursor-pointer ml-auto"
         >
@@ -399,10 +479,12 @@ export function Mixer() {
             code={tracks[id]}
             muted={mixState.muted?.includes(id) || false}
             solo={mixState.solo?.includes(id) || false}
+            group={mixState.groups?.[id] ?? null}
             onCodeChange={handleTrackCodeChange}
             onMute={handleMute}
             onSolo={handleSolo}
             onRemove={handleRemove}
+            onGroupChange={handleGroupChange}
           />
         ))}
 

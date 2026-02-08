@@ -178,3 +178,55 @@ $: note("[0, 2, 4] [3, 5, 7] [4, 6, 8] <[1, 3, 5] [7, 9, 11]>")
 - B sections / contrasting parts
 - More effects
 - Maybe: recording/exporting
+
+## 2026-02-08 - Session 6: Multi-Track Mixer Interface
+
+### What We Did
+- Built a completely new interface: multi-track mixer at `/mixer`
+- Each track lives in its own file (`tracks/*.strudel`)
+- Sync server compiles all tracks into a single strudel document in realtime
+- Full mute/solo/delete per track, global effects editor, BPM control
+- Play-once mode (plays 1 cycle then stops)
+- WebSocket protocol extended for Claude to control everything from CLI
+
+### Architecture
+- `website/src/pages/mixer.astro` — Astro page
+- `website/src/repl/Mixer.jsx` — React component with multiple CodeMirror editors + hidden master StrudelMirror for audio
+- `website/src/repl/mixer-sync.mjs` — browser-side WebSocket client for mixer protocol
+- `sync-server.mjs` — extended with track file watching, compiler, mixer state management
+- `tracks/` — directory of individual `.strudel` files
+- `mix.json` — mixer state (mute/solo/bpm/globalFx)
+- `mix.strudel` — compiled output (auto-generated)
+
+### Compiler
+Simple string concatenation: reads all track files, skips muted/non-soloed, appends global FX. Writes to `mix.strudel` and pushes via WebSocket. The `$:` patterns from each track naturally stack when evaluated by the single master repl.
+
+### Claude Control Interface
+- Write to `tracks/{name}.strudel` → auto-compiles and pushes
+- Edit `mix.json` → mute/solo/bpm changes propagate
+- `playground.cmd` → play/stop/toggle/play-once commands
+- WebSocket messages: `mixer:track`, `mixer:track:add`, `mixer:track:remove`, `mixer:state`
+
+### Technical Findings
+- macOS `fs.watch` fires double events and `rename` for modifications — needed debounce (100ms per file) and explicit `stat()` check before assuming deletion
+- Earlier version had a race condition where `fs.watch` catch block would delete tracks from memory on transient read failures
+- `StrudelMirror` needs a real DOM element (not `display:none`) — used `overflow-hidden h-0` for the hidden master
+
+### Files Created
+- `website/src/pages/mixer.astro`
+- `website/src/repl/Mixer.jsx`
+- `website/src/repl/mixer-sync.mjs`
+
+### Files Modified
+- `sync-server.mjs` — major extension with mixer protocol
+- `.gitignore` — added tracks/, mix.strudel, mix.json
+
+### Starter Tracks Created
+10 tracks all in D minor: kick, snare, hats, clap, perc, bass, chords, pad, melody, arp
+
+### Next Steps
+- Visualization per track (pianoroll/punchcard)
+- Track renaming in UI
+- Drag to reorder tracks
+- Record/export compiled output
+- Sample loading UI
