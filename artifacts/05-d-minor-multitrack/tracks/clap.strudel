@@ -1,0 +1,2 @@
+$: s("~ cp ~ ~").bank("RolandTR808")
+  .gain(0.5).room(0.3).delay(0.1)

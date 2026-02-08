@@ -1,0 +1,4 @@
+$: note("[4 ~ 2 0 ~ 3 ~ 5]/2")
+  .scale("d:minor").add(note(12))
+  .sound("triangle").gain(0.35)
+  .lpf(1600).delay(0.25).delaytime(0.33)

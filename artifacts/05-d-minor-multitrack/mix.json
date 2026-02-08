@@ -1,0 +1,19 @@
+{
+  "muted": [],
+  "solo": [],
+  "bpm": null,
+  "globalFx": "all(x => x.lpf(mousex.range(200, 8000)))",
+  "groups": {
+    "drums": 1,
+    "hats": 1,
+    "kick": 1,
+    "clap": 2,
+    "pad": 2,
+    "perc": 3,
+    "snare": 3,
+    "melody": 4,
+    "chords": 4,
+    "bass": 4,
+    "arp": 4
+  }
+}

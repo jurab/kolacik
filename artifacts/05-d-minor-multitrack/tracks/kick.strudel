@@ -1,0 +1,2 @@
+$: s("bd ~ bd ~, ~ ~ bd ~")
+  .bank("RolandTR808").gain(0.9)

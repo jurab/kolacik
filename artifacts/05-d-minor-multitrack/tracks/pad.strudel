@@ -1,0 +1,4 @@
+$: note("<[0,4] [3,7] [4,8] [0,4]>/4")
+  .scale("d:minor").add(note(12))
+  .sound("sine").gain(sine.range(0, 0.2).slow(4))
+  .lpf(1200).room(0.6).delay(0.3)

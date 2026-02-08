@@ -1,0 +1,3 @@
+$: s("~ rim ~ rim:1, ~ ~ ~ [~ cb]")
+  .bank("RolandTR808").gain(0.3)
+  .room(0.2).pan("0.3 0.7")

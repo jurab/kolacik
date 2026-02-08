@@ -1,0 +1,2 @@
+$: s("~ sd ~ sd").bank("RolandTR808")
+  .gain(0.7).room(0.2)

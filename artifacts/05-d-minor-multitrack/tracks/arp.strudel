@@ -1,0 +1,4 @@
+$: note("<[0,2,4] [3,5,7] [4,6,8] [0,2,4]>/2")
+  .scale("d:minor").arp("0 1 2 1").add(note(12))
+  .sound("triangle").gain(0.2)
+  .lpf(2000).delay(0.2).delaytime(0.125)
