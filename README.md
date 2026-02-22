@@ -1,52 +1,114 @@
-# strudel
+# kolacik
 
-Live coding patterns on the web
+A live coding music workbench built on [Strudel](https://strudel.cc). Multi-track mixer, real-time sync, and audio-reactive particle visualization.
 
+Fork of Strudel with a focus on multi-track composition and visual feedback. Write code, hear music, see it move.
 
-- Try it here: <https://strudel.cc>
-- Docs: <https://strudel.cc/learn>
-- Source: https://codeberg.org/uzu/strudel/
-  * Along with many other live coding projects, we have moved from Microsoft's Github platform to Codeberg for ethical reasons. **Please don't fork the project back to github**.
-- Technical Blog Post: <https://loophole-letters.vercel.app/strudel>
-- 1 Year of Strudel Blog Post: <https://loophole-letters.vercel.app/strudel1year>
-- 2 Years of Strudel Blog Post: <https://strudel.cc/blog/#year-2>
+## Quick Start
 
+```bash
+pnpm i
+pnpm dev                    # Astro dev server on http://localhost:4321
+node sync-server.mjs &      # WebSocket sync on ws://localhost:4322
+```
 
-## Running Locally
+Open `http://localhost:4321/mixer` for the mixer, or `/` for the single-track REPL.
 
-After cloning the project, you can run the REPL locally:
+## Features
 
-1. Install [Node.js](https://nodejs.org/) 18 or newer
-2. Install [pnpm](https://pnpm.io/installation)
-3. Install dependencies by running the following command:
-   ```bash
-   pnpm i
-   ```
-4. Run the development server:
-   ```bash
-   pnpm dev
-   ```
+### Mixer (`/mixer`)
 
-## Using Strudel In Your Project
+Multi-track live coding interface. Each track is a `.strudel` file in `/tracks/`, compiled together and played through a single master audio engine.
 
-This project is organized into many [packages](./packages), which are also available on [npm](https://www.npmjs.com/search?q=%40strudel).
+- **Per-track code editors** with syntax highlighting and independent visualization
+- **Mute/Solo** per track — uses Strudel's native `_$:` muting for gapless toggling
+- **Track groups** (0-9) — number keys toggle mute for entire groups
+- **BPM control** and **global FX editor** (post-processing chain applied to all tracks)
+- **Track status** — green/red names show playing/muted state, group number prefix
+- **Add/remove tracks** from the UI — files created/deleted on disk automatically
 
-Read more about how to use these in your own project [here](https://strudel.cc/technical-manual/project-start).
+### Sync System
 
-You will need to abide by the terms of the [GNU Affero Public Licence v3](LICENSE). As such, Strudel code can only be shared within free/open source projects under the same license -- see the license for details.
+WebSocket bridge (`sync-server.mjs` on port 4322) between filesystem and browser. Enables CLI-driven workflows — write to files, hear changes instantly.
 
-Licensing info for the default sound banks can be found over on the [dough-samples](https://github.com/felixroos/dough-samples/blob/main/README.md) repository.
+| File | Direction | Purpose |
+|---|---|---|
+| `playground.strudel` | CLI ↔ browser | Single REPL code sync |
+| `tracks/*.strudel` | CLI ↔ browser | Mixer track code |
+| `mix.json` | CLI ↔ browser | Mixer state (mute/solo/bpm/groups/fx) |
+| `playground.cmd` | CLI → browser | Transport control (`play`, `stop`, `toggle`) |
+| `playground.errors` | browser → CLI | Error/warning feedback |
+| `playground.debug` | browser → CLI | Debug messages |
+| `mix.strudel` | generated | Compiled mixer output (all tracks merged) |
 
-## Contributing
+### Particle Visualization
 
-There are many ways to contribute to this project! See [contribution guide](./CONTRIBUTING.md). You can find the full list of contributors [here](https://codeberg.org/uzu/strudel/activity/contributors).
+Audio-reactive curl noise particle system (3000 particles). Musical events drive visual effects in real time.
 
-## Community
+**Effect types:**
 
-There is a #strudel channel on the TidalCycles discord: <https://discord.com/invite/HGEdXmRkzT>
+| Effect | Trigger (auto) | Visual |
+|---|---|---|
+| burst | kick/bd | Radial push from center |
+| orbitPulse | clap/snare | Angular velocity kick |
+| tangent | rim/clave/cowbell | Perpendicular push |
+| jitter | hh/oh/ch | Per-particle sparkle |
+| flash | short high synth notes | Brightness boost |
+| swell | low notes (< E3) | Orbit expansion |
+| pad | sustained chords (3+ notes) | Tension-driven noise modulation |
 
-You can also ask questions and find related discussions on the tidal club forum: <https://club.tidalcycles.org/>
+Each track has an **fx dropdown** to override auto-detection — assign any effect to any track, or `none` to disable.
 
-The discord and forum is shared with the haskell (tidal) and python (vortex) siblings of this project.
+**Viz mode** (V key) brings particles to foreground with dimmed mixer UI.
 
-We also have a mastodon account: <a rel="me" href="https://social.toplap.org/@strudel">social.toplap.org/@strudel</a>
+Per-track visualization dropdown: punchcard, pianoroll, wordfall, smear, active.
+
+### Artifacts
+
+Save and load complete mixer states:
+
+```bash
+./save-piece.sh my-jam      # → artifacts/my-jam/ (tracks + mix.json)
+./load-piece.sh my-jam      # ← restores tracks + state
+```
+
+### Compiler
+
+The sync server compiles all track files into `mix.strudel`:
+
+- Sorted alphabetically for deterministic order
+- Muted tracks get `_$:` prefix (native Strudel silence — atomic, no dropout)
+- Each track tagged with `.tag('trackId')` for per-track effect routing
+- Global FX appended at end
+- BPM set via `setcpm(bpm/4)` when configured
+
+## Architecture
+
+```
+browser (localhost:4321)          sync-server (ws://4322)          filesystem
+         │                                │                            │
+         │◄──── mixer:compiled ───────────┤◄──── fs.watch ────────────┤ tracks/*.strudel
+         │                                │                            │ mix.json
+         │──── mixer:track ──────────────►│──── writeFile ────────────►│
+         │──── mixer:state ──────────────►│──── writeFile ────────────►│
+         │                                │                            │
+  StrudelMirror (master)          compile() merges all              CLI / editor
+  CurlParticles (viz)             tracks into mix.strudel           writes files
+  Per-track editors (silent)
+```
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|---|---|
+| V | Toggle viz mode (particles foreground) |
+| 0-9 | Toggle mute for track group |
+| Ctrl+Enter | Evaluate code (in editor) |
+
+## Based On
+
+[Strudel](https://strudel.cc) — live coding music patterns on the web, a JavaScript port of TidalCycles. Licensed under [GNU AGPL v3](LICENSE).
+
+- Strudel source: https://codeberg.org/uzu/strudel/
+- Strudel docs: https://strudel.cc/learn
+- TidalCycles community: https://discord.com/invite/HGEdXmRkzT
