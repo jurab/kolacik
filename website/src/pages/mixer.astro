@@ -7,8 +7,14 @@ import { Mixer } from '../repl/Mixer';
   <head>
     <HeadCommon />
     <title>Kolacik Mixer</title>
+    <style>
+      :root {
+        --background: #0a0e14;
+        --lineHighlight: #0d111730;
+      }
+    </style>
   </head>
-  <body class="bg-background m-0">
+  <body style="background: #0a0a0a; margin: 0;">
     <Mixer client:only="react" />
   </body>
 </html>

@@ -17,7 +17,7 @@ export function compile(tracks, mixState = {}) {
     code += `// == ${id} ==\n`;
     let trackCode = tracks[id].trim();
     if (shouldMute) {
-      trackCode = trackCode.replace(/^\$:/, '_$:');
+      trackCode = trackCode.replace(/^\$:/gm, '_$:');
     }
     const orbitIndex = sortedIds.indexOf(id);
     trackCode += `.tag('${id}').orbit(${orbitIndex})`;

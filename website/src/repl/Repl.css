@@ -8,6 +8,135 @@
   --lineHighlight: #00000050;
   --gutterBackground: transparent;
   --gutterForeground: #8a919966;
+
+  /* Mixer palette */
+  --mixer-bg: #0a0a0a;
+  --mixer-panel: #111;
+  --mixer-border: #222;
+  --mixer-text: #c9c9c9;
+  --mixer-text-secondary: #888;
+  --mixer-text-label: #666;
+  --mixer-text-subtle: #444;
+  --mixer-accent: #f80;
+  --mixer-status-ok: #6a8;
+  --mixer-input-bg: #1a1a1a;
+  --mixer-input-border: #333;
+  --mixer-font: "Operator Mono SSm Lig", monospace;
+  --mixer-transition: color 0.2s, opacity 0.2s, background-color 0.2s;
+}
+
+/* ── Mixer UI ─────────────────────────────────── */
+
+/* Track controls: hidden at rest, revealed on hover */
+.mixer-track:hover .mixer-track-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+.mixer-track-controls {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* Text-only button */
+.mixer-btn {
+  background: transparent;
+  border: none;
+  font-family: var(--mixer-font);
+  font-size: 0.75rem;
+  color: var(--mixer-text-label);
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  transition: var(--mixer-transition);
+}
+.mixer-btn:hover {
+  color: var(--mixer-text);
+}
+
+/* Transparent select */
+.mixer-select {
+  background: transparent;
+  border: none;
+  font-family: var(--mixer-font);
+  font-size: 0.7rem;
+  color: var(--mixer-text-label);
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  transition: var(--mixer-transition);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.mixer-select:hover,
+.mixer-select:focus {
+  color: var(--mixer-text);
+  outline: none;
+}
+
+/* BPM input */
+.mixer-bpm-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--mixer-border);
+  font-family: var(--mixer-font);
+  font-size: 0.75rem;
+  color: var(--mixer-text-secondary);
+  width: 3rem;
+  text-align: center;
+  padding: 0.15rem 0;
+  transition: var(--mixer-transition);
+  -moz-appearance: textfield;
+}
+.mixer-bpm-input::-webkit-outer-spin-button,
+.mixer-bpm-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.mixer-bpm-input:focus {
+  outline: none;
+  border-bottom-color: var(--mixer-accent);
+  color: var(--mixer-text);
+}
+.mixer-bpm-input::placeholder {
+  color: var(--mixer-text-subtle);
+}
+
+/* Knob buttons — round, protrude below toolbar */
+.mixer-knob {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--mixer-panel);
+  border: 1px solid var(--mixer-border);
+  color: var(--mixer-text-label);
+  font-family: var(--mixer-font);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  top: 4px;
+  transition: border-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+.mixer-knob:hover {
+  color: var(--mixer-text);
+  border-color: var(--mixer-input-border);
+}
+.mixer-knob-lg {
+  width: 44px;
+  height: 44px;
+  font-size: 1rem;
+  top: 8px;
+}
+
+/* Muted track dimming */
+.mixer-track-muted {
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+.mixer-track-muted:hover {
+  opacity: 0.5;
 }
 
 .darken::before {

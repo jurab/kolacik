@@ -198,9 +198,11 @@ const server = createServer(async (req, res) => {
       if (!data) return json(res, { error: 'not found' }, 404);
       tracks = data.tracks;
       mixState = data.state;
+      mixState.muted = Object.keys(tracks);
+      putState(mixState);
       lastCompiledCode = compile(tracks, mixState);
       await writeFile(MIX_FILE, lastCompiledCode).catch(() => {});
-      console.log(`📂 Piece "${name}" loaded via HTTP`);
+      console.log(`📂 Piece "${name}" loaded via HTTP (all muted)`);
       // Full reinit broadcast
       for (const ws of clients) {
         if (ws.readyState === 1) ws.send(JSON.stringify(mixerInitPayload()));
@@ -353,9 +355,11 @@ wss.on('connection', async (ws) => {
         if (loaded) {
           tracks = loaded.tracks;
           mixState = loaded.state;
+          mixState.muted = Object.keys(tracks);
+          putState(mixState);
           lastCompiledCode = compile(tracks, mixState);
           await writeFile(MIX_FILE, lastCompiledCode).catch(() => {});
-          console.log(`📂 Piece "${msg.name}" loaded from browser`);
+          console.log(`📂 Piece "${msg.name}" loaded from browser (all muted)`);
           // Full reinit to all clients
           const payload = JSON.stringify(mixerInitPayload());
           for (const c of clients) {

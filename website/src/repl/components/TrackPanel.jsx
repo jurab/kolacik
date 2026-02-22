@@ -150,17 +150,37 @@ export function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, fx,
     mirrorRef.current.repl.evaluate(mirrorRef.current.code, startedRef.current);
   }, [viz]);
 
+  const nameColor = solo
+    ? 'var(--mixer-accent)'
+    : effectivelyMuted
+      ? '#f44'
+      : 'var(--mixer-status-ok)';
+
   return (
-    <div className={`border border-lineHighlight rounded-md overflow-hidden transition-opacity duration-500 ${effectivelyMuted && !vizMode ? 'opacity-40' : ''}`} style={{ backgroundColor: 'rgba(26, 26, 26, 0.85)', opacity: vizMode ? 0.5 : undefined }}>
-      <div className="flex items-center justify-between px-3 py-1.5" style={{ backgroundColor: 'rgba(40, 40, 40, 0.9)' }}>
-        <span className={`font-mono text-sm font-bold ${effectivelyMuted ? 'text-red-500' : 'text-green-500'}`}>
-          {group != null ? `${group}: ` : ''}{id}
+    <div
+      className={`mixer-track overflow-hidden ${effectivelyMuted && !vizMode ? 'mixer-track-muted' : ''}`}
+      style={{
+        background: 'var(--mixer-panel)',
+        border: '1px solid var(--mixer-border)',
+        borderRadius: 4,
+        opacity: vizMode ? 0.5 : undefined,
+        transition: 'opacity 0.3s ease',
+      }}
+    >
+      <div className="flex items-center justify-between px-3 py-1">
+        <span style={{ fontFamily: 'var(--mixer-font)', fontSize: '0.85rem', color: nameColor }}>
+          {group != null && <span style={{ color: nameColor, opacity: 0.6 }}>{group}:</span>}
+          {id}
         </span>
-        <div className="flex gap-1 items-center transition-opacity duration-500" style={{ opacity: vizMode ? 0 : 1, pointerEvents: vizMode ? 'none' : 'auto' }}>
+
+        <div
+          className="mixer-track-controls flex gap-1 items-center"
+          style={{ opacity: vizMode ? 0 : undefined, pointerEvents: vizMode ? 'none' : undefined }}
+        >
           <select
+            className="mixer-select"
             value={viz || ''}
             onChange={(e) => onVizChange(id, e.target.value || null)}
-            className="w-16 px-0.5 py-0.5 rounded text-xs font-mono bg-background text-foreground border border-lineHighlight cursor-pointer text-center appearance-none"
             title="Visualization"
           >
             <option value="">vis</option>
@@ -170,10 +190,11 @@ export function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, fx,
             <option value="smear">smear</option>
             <option value="active">active</option>
           </select>
+
           <select
+            className="mixer-select"
             value={fx || ''}
             onChange={(e) => onFxChange(id, e.target.value || null)}
-            className="w-16 px-0.5 py-0.5 rounded text-xs font-mono bg-background text-foreground border border-lineHighlight cursor-pointer text-center appearance-none"
             title="Particle effect"
           >
             <option value="">auto</option>
@@ -186,45 +207,52 @@ export function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, fx,
             <option value="flash">flash</option>
             <option value="pad">pad</option>
           </select>
+
           <select
+            className="mixer-select"
             value={group ?? ''}
             onChange={(e) => onGroupChange(id, e.target.value === '' ? null : Number(e.target.value))}
-            className="w-10 px-0.5 py-0.5 rounded text-xs font-mono bg-background text-foreground border border-lineHighlight cursor-pointer text-center appearance-none"
-            title="Group (press number key to toggle mute)"
+            title="Group (number key to toggle mute)"
+            style={{ width: '2rem', textAlign: 'center' }}
           >
             <option value="">-</option>
             {[0,1,2,3,4,5,6,7,8,9].map(n => (
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
+
           <button
+            className="mixer-btn"
             onClick={() => onMute(id)}
-            className={`px-2 py-0.5 rounded text-xs font-mono cursor-pointer ${
-              muted ? 'bg-red-700 text-white' : 'bg-background text-foreground hover:bg-red-700'
-            }`}
+            style={{ color: muted ? '#f44' : undefined }}
           >
             M
           </button>
+
           <button
+            className="mixer-btn"
             onClick={() => onSolo(id)}
-            className={`px-2 py-0.5 rounded text-xs font-mono cursor-pointer ${
-              solo ? 'bg-yellow-600 text-white' : 'bg-background text-foreground hover:bg-yellow-600'
-            }`}
+            style={{ color: solo ? 'var(--mixer-accent)' : undefined }}
           >
             S
           </button>
+
           <button
+            className="mixer-btn"
             onClick={() => onRemove(id)}
-            className="px-2 py-0.5 rounded text-xs font-mono bg-background text-foreground hover:bg-red-900 cursor-pointer"
+            style={{ color: undefined }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#f44'}
+            onMouseLeave={(e) => e.currentTarget.style.color = ''}
           >
-            X
+            ×
           </button>
         </div>
       </div>
+
       <div
         ref={containerRef}
-        className="min-h-[60px] transition-opacity duration-500"
-        style={{ fontFamily: '"Operator Mono SSm Lig", monospace', opacity: vizMode ? 0.5 : 1 }}
+        className="min-h-[60px]"
+        style={{ fontFamily: 'var(--mixer-font)', opacity: vizMode ? 0.5 : 0.85, transition: 'opacity 0.3s ease' }}
       />
     </div>
   );

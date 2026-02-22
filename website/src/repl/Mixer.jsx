@@ -17,7 +17,6 @@ import { MixerToolbar } from './components/MixerToolbar.jsx';
 import {
   initMixerSync,
   sendTrackCode,
-  sendAddTrack,
   sendRemoveTrack,
   sendMixerState,
   sendSavePiece,
@@ -46,6 +45,7 @@ export function Mixer() {
   const [started, setStarted] = useState(false);
   const [connected, setConnected] = useState(false);
   const [vizMode, setVizMode] = useState(false);
+  const [currentPiece, setCurrentPiece] = useState(null);
   const masterRef = useRef(null);
   const masterContainerRef = useRef(null);
   const curlRef = useRef(null);
@@ -55,6 +55,7 @@ export function Mixer() {
   mixStateRef.current = mixState;
   const tracksRef = useRef(tracks);
   tracksRef.current = tracks;
+  const muteAllRef = useRef(null);
 
   // Init master StrudelMirror (hidden, handles all audio)
   const initMaster = useCallback(() => {
@@ -153,8 +154,19 @@ export function Mixer() {
 
   useEffect(() => {
     const onKey = (e) => {
+      if (e.code === 'MediaPlayPause') {
+        e.preventDefault();
+        if (masterRef.current?.repl?.scheduler?.started) masterRef.current.stop();
+        else masterRef.current?.evaluate();
+        return;
+      }
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.cm-editor')) return;
       if (e.code === 'KeyV') setVizMode(v => !v);
+      if (e.code === 'KeyP') {
+        if (masterRef.current?.repl?.scheduler?.started) masterRef.current.stop();
+        else masterRef.current?.evaluate();
+      }
+      if (e.code === 'KeyM') muteAllRef.current?.();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -203,15 +215,13 @@ export function Mixer() {
     });
   }, []);
 
-  // Add track
-  const handleAddTrack = useCallback(() => {
-    const existing = Object.keys(tracks);
-    let name = 'track-' + (existing.length + 1);
-    while (tracks[name]) name += '-2';
-    const code = `$: s("bd")\n`;
-    sendAddTrack(name, code);
-    setTracks(prev => ({ ...prev, [name]: code }));
-  }, [tracks]);
+  // Clear all tracks
+  const handleClearTracks = useCallback(() => {
+    const ids = Object.keys(tracksRef.current);
+    for (const id of ids) sendRemoveTrack(id);
+    setTracks({});
+    setCurrentPiece(null);
+  }, []);
 
   // BPM change
   const handleBpmChange = useCallback((val) => {
@@ -261,16 +271,21 @@ export function Mixer() {
   // Piece management
   const handleSavePiece = useCallback(() => {
     const name = prompt('Save piece as:');
-    if (name?.trim()) sendSavePiece(name.trim());
+    if (name?.trim()) {
+      sendSavePiece(name.trim());
+      setCurrentPiece(name.trim());
+    }
   }, []);
 
   const handleLoadPiece = useCallback((name) => {
     sendLoadPiece(name);
+    setCurrentPiece(name);
   }, []);
 
   const handleDeletePiece = useCallback((name) => {
     if (confirm(`Delete piece "${name}"?`)) sendDeletePiece(name);
   }, []);
+
 
   // Mute all toggle
   const handleMuteAll = useCallback(() => {
@@ -282,6 +297,7 @@ export function Mixer() {
       return next;
     });
   }, []);
+  muteAllRef.current = handleMuteAll;
 
   // Keyboard: number keys toggle mute for track groups
   useEffect(() => {
@@ -324,25 +340,26 @@ export function Mixer() {
   const sortedTrackIds = Object.keys(tracks).sort();
 
   return (
-    <div className="text-foreground" style={{ background: 'transparent', position: 'relative', zIndex: 2 }}>
+    <div style={{ background: 'transparent', position: 'relative', zIndex: 2, color: 'var(--mixer-text)' }}>
       <MixerToolbar
         started={started}
         connected={connected}
         bpm={mixState.bpm}
         vizMode={vizMode}
         pieces={pieces}
+        currentPiece={currentPiece}
+        allMuted={sortedTrackIds.length > 0 && sortedTrackIds.every(id => mixState.muted?.includes(id))}
         onPlay={handlePlayAll}
         onStop={handleStop}
         onBpmChange={handleBpmChange}
         onMuteAll={handleMuteAll}
-        onAddTrack={handleAddTrack}
+        onClearTracks={handleClearTracks}
         onVizToggle={() => setVizMode(v => !v)}
         onSavePiece={handleSavePiece}
         onLoadPiece={handleLoadPiece}
-        onDeletePiece={handleDeletePiece}
       />
 
-      <div className="p-4 flex flex-col gap-3" style={{ marginTop: '3rem', pointerEvents: vizMode ? 'none' : 'auto' }}>
+      <div className="px-4 py-2 flex flex-col gap-2" style={{ marginTop: '2.5rem', pointerEvents: vizMode ? 'none' : 'auto' }}>
         {sortedTrackIds.map((id) => {
           const isMuted = mixState.muted?.includes(id) || false;
           const isSoloed = mixState.solo?.includes(id) || false;
@@ -373,8 +390,8 @@ export function Mixer() {
         })}
 
         {sortedTrackIds.length === 0 && (
-          <div className="text-center text-foreground opacity-40 font-mono py-8">
-            no tracks — click "+ track" or load a piece
+          <div className="text-center text-sm py-8" style={{ color: 'var(--mixer-text-subtle)', fontFamily: 'var(--mixer-font)' }}>
+            no tracks
           </div>
         )}
       </div>

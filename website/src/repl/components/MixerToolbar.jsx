@@ -1,82 +1,125 @@
-export function MixerToolbar({ started, connected, bpm, vizMode, pieces, onPlay, onStop, onBpmChange, onMuteAll, onAddTrack, onVizToggle, onSavePiece, onLoadPiece, onDeletePiece }) {
+import { useState, useRef, useEffect } from 'react';
+
+export function MixerToolbar({ started, connected, bpm, vizMode, pieces, currentPiece, allMuted, onPlay, onStop, onBpmChange, onMuteAll, onClearTracks, onVizToggle, onSavePiece, onLoadPiece }) {
+  const [trashArmed, setTrashArmed] = useState(false);
+  const trashTimer = useRef(null);
+
+  useEffect(() => {
+    return () => { if (trashTimer.current) clearTimeout(trashTimer.current); };
+  }, []);
+
+  const handleTrash = () => {
+    if (trashArmed) {
+      clearTimeout(trashTimer.current);
+      setTrashArmed(false);
+      onClearTracks();
+    } else {
+      setTrashArmed(true);
+      trashTimer.current = setTimeout(() => setTrashArmed(false), 3000);
+    }
+  };
+
   return (
-    <div id="mixer-toolbar" className="fixed top-0 left-0 right-0 z-10 flex items-center gap-2 px-4 py-2 border-b border-lineHighlight" style={{ backgroundColor: '#1a1a1a' }}>
-      <span className="font-mono text-sm font-bold mr-2">kolacik mixer</span>
+    <div
+      className="fixed top-0 left-0 right-0 z-10 flex items-center px-4"
+      style={{
+        background: 'var(--mixer-bg)',
+        borderBottom: '1px solid var(--mixer-border)',
+        padding: '6px 16px',
+        fontFamily: 'var(--mixer-font)',
+        height: 36,
+      }}
+    >
+      {/* ── Left zone: trash, BPM, save, piece selector ── */}
+      <div className="flex items-center gap-4">
+        <button
+          className="mixer-btn"
+          onClick={handleTrash}
+          title={trashArmed ? 'Click again to delete all tracks' : 'Clear all tracks'}
+          style={{ color: trashArmed ? '#f44' : undefined, fontSize: '0.9rem', padding: '0 0.25rem' }}
+        >
+          {trashArmed
+            ? <span style={{ fontSize: '0.75rem' }}>confirm?</span>
+            : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1.5 3.5h11M5 3.5V2a1 1 0 011-1h2a1 1 0 011 1v1.5M3 3.5l.5 8.5a1 1 0 001 1h5a1 1 0 001-1l.5-8.5M5.5 6v4M8.5 6v4" />
+              </svg>
+          }
+        </button>
 
-      <button
-        id="btn-play"
-        onClick={started ? onStop : onPlay}
-        className={`w-24 py-1 rounded text-sm font-mono cursor-pointer text-center ${
-          started ? 'bg-green-700 text-white animate-pulse' : 'bg-background text-foreground hover:bg-green-700'
-        }`}
-      >
-        {started ? '■ stop' : '▶ play all'}
-      </button>
-
-      <div id="bpm-control" className="flex items-center gap-1 ml-4">
-        <label className="text-xs font-mono text-foreground opacity-60">BPM</label>
         <input
-          id="bpm-input"
           type="number"
+          className="mixer-bpm-input"
           value={bpm ?? ''}
           onChange={(e) => onBpmChange(e.target.value)}
-          placeholder="auto"
-          className="w-16 px-1 py-0.5 rounded text-sm font-mono bg-background text-foreground border border-lineHighlight"
+          placeholder="---"
+          title="BPM"
         />
-      </div>
 
-      <button
-        id="btn-mute-all"
-        onClick={onMuteAll}
-        className="px-3 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-red-700 cursor-pointer"
-      >
-        mute all
-      </button>
+        <span style={{ color: 'var(--mixer-border)', userSelect: 'none' }}>|</span>
 
-      {/* Piece selector */}
-      <div className="flex items-center gap-1 ml-4 border-l border-lineHighlight pl-4">
+        <button className="mixer-btn" onClick={onSavePiece} title="Save current session as piece">
+          save
+        </button>
+
         <select
-          className="px-2 py-1 rounded text-sm font-mono bg-background text-foreground border border-lineHighlight cursor-pointer"
+          className="mixer-select"
           value=""
           onChange={(e) => {
             if (e.target.value) onLoadPiece(e.target.value);
             e.target.value = '';
           }}
+          title="Load piece"
         >
-          <option value="">pieces...</option>
+          <option value="">{currentPiece || 'pieces'}</option>
           {(pieces || []).map(name => (
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
+      </div>
+
+      {/* ── Center zone: knob controls (V, Play, M) ── */}
+      <div className="flex items-center gap-3" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+        <button
+          className="mixer-knob"
+          onClick={onVizToggle}
+          title="Toggle viz mode (V)"
+          style={{ borderColor: vizMode ? 'var(--mixer-accent)' : undefined, color: vizMode ? 'var(--mixer-accent)' : undefined }}
+        >
+          V
+        </button>
 
         <button
-          onClick={onSavePiece}
-          className="px-2 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-blue-700 cursor-pointer"
-          title="Save current session as piece"
+          className="mixer-knob mixer-knob-lg"
+          onClick={started ? onStop : onPlay}
+          title={started ? 'Stop (P)' : 'Play (P)'}
+          style={{ borderColor: started ? 'var(--mixer-accent)' : undefined, color: started ? 'var(--mixer-accent)' : undefined }}
         >
-          save
+          {started ? '\u25A0' : '\u25B6'}
+        </button>
+
+        <button
+          className="mixer-knob"
+          onClick={onMuteAll}
+          title="Mute / unmute all (M)"
+          style={{ borderColor: allMuted ? '#f44' : undefined, color: allMuted ? '#f44' : undefined }}
+        >
+          M
         </button>
       </div>
 
-      <button
-        id="btn-add-track"
-        onClick={onAddTrack}
-        className="px-3 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-green-700 cursor-pointer ml-auto"
-      >
-        + track
-      </button>
-
-      <button
-        onClick={onVizToggle}
-        className={`px-3 py-1 rounded text-sm font-mono cursor-pointer ${
-          vizMode ? 'bg-purple-700 text-white' : 'bg-background text-foreground hover:bg-purple-700'
-        }`}
-        title="Toggle viz mode (V)"
-      >
-        {vizMode ? '◉ viz' : '○ viz'}
-      </button>
-
-      <div id="sync-status" className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} title={connected ? 'connected' : 'disconnected'} />
+      {/* ── Right zone: connection status ── */}
+      <div className="flex items-center" style={{ marginLeft: 'auto' }}>
+        <div
+          style={{
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            background: connected ? 'var(--mixer-status-ok)' : '#f44',
+            flexShrink: 0,
+          }}
+          title={connected ? 'connected' : 'disconnected'}
+        />
+      </div>
     </div>
   );
 }
