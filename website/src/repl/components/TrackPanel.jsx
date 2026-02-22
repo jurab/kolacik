@@ -160,7 +160,7 @@ export function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, fx,
     <div
       className={`mixer-track overflow-hidden ${effectivelyMuted && !vizMode ? 'mixer-track-muted' : ''}`}
       style={{
-        background: 'var(--mixer-panel)',
+        background: 'rgba(17, 17, 17, 0.85)',
         border: '1px solid var(--mixer-border)',
         borderRadius: 4,
         opacity: vizMode ? 0.5 : undefined,
