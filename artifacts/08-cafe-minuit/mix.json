@@ -11,5 +11,14 @@
     "keys": 3,
     "wah": 3,
     "flute": 4
+  },
+  "trackFx": {
+    "drums": "burst",
+    "hats": "jitter",
+    "perc": "tangent",
+    "bass": "swell",
+    "keys": "pad",
+    "wah": "flash",
+    "flute": "flash"
   }
 }

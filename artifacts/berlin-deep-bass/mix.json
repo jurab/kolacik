@@ -11,5 +11,14 @@
     "bass": 2,
     "pad": 3,
     "stab": 3
+  },
+  "trackFx": {
+    "kick": "burst",
+    "clap": "orbitPulse",
+    "hats": "jitter",
+    "perc": "tangent",
+    "bass": "swell",
+    "pad": "pad",
+    "stab": "flash"
   }
 }

@@ -15,5 +15,18 @@
     "chords": 4,
     "bass": 4,
     "arp": 4
+  },
+  "trackFx": {
+    "drums": "burst",
+    "hats": "jitter",
+    "kick": "burst",
+    "clap": "orbitPulse",
+    "pad": "pad",
+    "perc": "tangent",
+    "snare": "orbitPulse",
+    "melody": "flash",
+    "chords": "pad",
+    "bass": "swell",
+    "arp": "flash"
   }
 }

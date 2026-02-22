@@ -21,5 +21,15 @@
     "bossa4": 6,
     "pop1": 7,
     "rnb5": 8
+  },
+  "trackFx": {
+    "afrocuban1": "burst",
+    "funk1": "burst",
+    "disco1": "burst",
+    "rock1": "burst",
+    "reggae5": "burst",
+    "bossa4": "burst",
+    "pop1": "burst",
+    "rnb5": "burst"
   }
 }
