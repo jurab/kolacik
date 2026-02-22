@@ -32,7 +32,7 @@ if (typeof window !== 'undefined') {
 // Track Editor — StrudelMirror per track (vis + highlighting)
 // ============================================================
 
-function TrackPanel({ id, code, muted, solo, group, viz, started, vizMode, onCodeChange, onMute, onSolo, onRemove, onGroupChange, onVizChange }) {
+function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, viz, started, vizMode, onCodeChange, onMute, onSolo, onRemove, onGroupChange, onVizChange }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const mirrorRef = useRef(null);
@@ -187,9 +187,11 @@ function TrackPanel({ id, code, muted, solo, group, viz, started, vizMode, onCod
   }, [viz]);
 
   return (
-    <div className={`border border-lineHighlight rounded-md overflow-hidden transition-opacity duration-500 ${muted && !vizMode ? 'opacity-40' : ''}`} style={{ backgroundColor: 'rgba(26, 26, 26, 0.85)', opacity: vizMode ? 0.5 : undefined }}>
+    <div className={`border border-lineHighlight rounded-md overflow-hidden transition-opacity duration-500 ${effectivelyMuted && !vizMode ? 'opacity-40' : ''}`} style={{ backgroundColor: 'rgba(26, 26, 26, 0.85)', opacity: vizMode ? 0.5 : undefined }}>
       <div className="flex items-center justify-between px-3 py-1.5" style={{ backgroundColor: 'rgba(40, 40, 40, 0.9)' }}>
-        <span className="text-foreground font-mono text-sm font-bold">{id}</span>
+        <span className={`font-mono text-sm font-bold ${effectivelyMuted ? 'text-red-500' : 'text-green-500'}`}>
+          {group != null ? `${group}: ` : ''}{id}
+        </span>
         <div className="flex gap-1 items-center transition-opacity duration-500" style={{ opacity: vizMode ? 0 : 1, pointerEvents: vizMode ? 'none' : 'auto' }}>
           <select
             value={viz || ''}
@@ -633,13 +635,18 @@ export function Mixer() {
 
       {/* Track panels */}
       <div className="p-4 flex flex-col gap-3" style={{ marginTop: '3rem', pointerEvents: vizMode ? 'none' : 'auto' }}>
-        {sortedTrackIds.map((id) => (
-          <TrackPanel
+        {sortedTrackIds.map((id) => {
+          const isMuted = mixState.muted?.includes(id) || false;
+          const isSoloed = mixState.solo?.includes(id) || false;
+          const hasSolo = (mixState.solo?.length || 0) > 0;
+          const effectivelyMuted = isMuted || (hasSolo && !isSoloed);
+          return <TrackPanel
             key={id}
             id={id}
             code={tracks[id]}
-            muted={mixState.muted?.includes(id) || false}
-            solo={mixState.solo?.includes(id) || false}
+            muted={isMuted}
+            solo={isSoloed}
+            effectivelyMuted={effectivelyMuted}
             group={mixState.groups?.[id] ?? null}
             viz={vizTypes[id] || null}
             started={started}
@@ -650,8 +657,8 @@ export function Mixer() {
             onRemove={handleRemove}
             onGroupChange={handleGroupChange}
             onVizChange={handleVizChange}
-          />
-        ))}
+          />;
+        })}
 
         {sortedTrackIds.length === 0 && (
           <div className="text-center text-foreground opacity-40 font-mono py-8">
