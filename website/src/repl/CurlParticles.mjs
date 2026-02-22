@@ -89,10 +89,10 @@ export class CurlParticles {
   constructor(options = {}) {
     const {
       count = 1200,
-      scale = 130,
-      speed = 2.6,
-      evolution = 0.005,
-      fade = 0.08,
+      scale = 200,
+      speed = 0.2,
+      evolution = 0.001,
+      fade = 0.06,
     } = options;
 
     this.params = { scale, speed, evolution, fade };
@@ -146,13 +146,15 @@ export class CurlParticles {
   initParticles(count) {
     this.particles = [];
     for (let i = 0; i < count; i++) {
-      // Distribute in a loose cloud around center
       const angle = Math.random() * Math.PI * 2;
-      const radius = Math.random() * Math.min(this.width, this.height) * 0.35;
+      const radius = 30 + Math.random() * Math.min(this.width, this.height) * 0.35;
       this.particles.push({
         x: this.centerX + Math.cos(angle) * radius,
         y: this.centerY + Math.sin(angle) * radius,
         alpha: 0.3 + Math.random() * 0.7,
+        orbitRadius: radius,
+        orbitAngle: angle,
+        orbitSpeed: 0.0006 + Math.random() * 0.0006,
       });
     }
   }
@@ -171,33 +173,29 @@ export class CurlParticles {
 
     const { width, height, ctx, particles, params } = this;
 
-    // Fade trail — in foreground mode use clearRect for transparency
-    if (this.foreground) {
-      ctx.clearRect(0, 0, width, height);
-    } else {
-      ctx.fillStyle = `rgba(0, 0, 0, ${params.fade})`;
-      ctx.fillRect(0, 0, width, height);
-    }
+    ctx.clearRect(0, 0, width, height);
+
+    const cx = this.centerX;
+    const cy = this.centerY;
 
     for (const p of particles) {
-      // Curl velocity
-      const [cx, cy] = this.curl(p.x / params.scale, p.y / params.scale);
-      const vx = cx * params.speed;
-      const vy = cy * params.speed;
+      // Slow orbit around center
+      p.orbitAngle += p.orbitSpeed;
 
-      p.x += vx;
-      p.y += vy;
+      // Gentle curl noise displacement on top of orbit
+      const [nx, ny] = this.curl(p.x / params.scale, p.y / params.scale);
+      const noiseStrength = params.speed;
 
-      // Wrap around edges with margin
-      const margin = 50;
-      if (p.x < -margin) p.x = width + margin;
-      if (p.x > width + margin) p.x = -margin;
-      if (p.y < -margin) p.y = height + margin;
-      if (p.y > height + margin) p.y = -margin;
+      const targetX = cx + Math.cos(p.orbitAngle) * p.orbitRadius;
+      const targetY = cy + Math.sin(p.orbitAngle) * p.orbitRadius;
+
+      // Ease toward orbit path + noise perturbation
+      p.x += (targetX - p.x) * 0.02 + nx * noiseStrength;
+      p.y += (targetY - p.y) * 0.02 + ny * noiseStrength;
 
       // Draw
-      ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.7})`;
-      ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+      ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.9})`;
+      ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
     }
 
     this.raf = requestAnimationFrame(() => this.animate());
