@@ -9,6 +9,7 @@ import {
 } from '@strudel/webaudio';
 import { StrudelMirror, initEditor } from '@strudel/codemirror';
 import { prebake } from './prebake.mjs';
+import { CurlParticles } from './CurlParticles.mjs';
 import { loadModules } from './util.mjs';
 import {
   initMixerSync,
@@ -31,7 +32,7 @@ if (typeof window !== 'undefined') {
 // Track Editor — StrudelMirror per track (vis + highlighting)
 // ============================================================
 
-function TrackPanel({ id, code, muted, solo, group, viz, started, onCodeChange, onMute, onSolo, onRemove, onGroupChange, onVizChange }) {
+function TrackPanel({ id, code, muted, solo, group, viz, started, vizMode, onCodeChange, onMute, onSolo, onRemove, onGroupChange, onVizChange }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const mirrorRef = useRef(null);
@@ -186,10 +187,10 @@ function TrackPanel({ id, code, muted, solo, group, viz, started, onCodeChange, 
   }, [viz]);
 
   return (
-    <div className={`border border-lineHighlight rounded-md overflow-hidden ${muted ? 'opacity-40' : ''}`}>
-      <div className="flex items-center justify-between bg-lineHighlight px-3 py-1.5">
+    <div className={`border border-lineHighlight rounded-md overflow-hidden transition-opacity duration-500 ${muted && !vizMode ? 'opacity-40' : ''}`} style={{ backgroundColor: 'rgba(26, 26, 26, 0.85)', opacity: vizMode ? 0.5 : undefined }}>
+      <div className="flex items-center justify-between px-3 py-1.5" style={{ backgroundColor: 'rgba(40, 40, 40, 0.9)' }}>
         <span className="text-foreground font-mono text-sm font-bold">{id}</span>
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-1 items-center transition-opacity duration-500" style={{ opacity: vizMode ? 0 : 1, pointerEvents: vizMode ? 'none' : 'auto' }}>
           <select
             value={viz || ''}
             onChange={(e) => onVizChange(id, e.target.value || null)}
@@ -240,8 +241,8 @@ function TrackPanel({ id, code, muted, solo, group, viz, started, onCodeChange, 
       </div>
       <div
         ref={containerRef}
-        className="min-h-[60px]"
-        style={{ fontFamily: '"Operator Mono SSm Lig", monospace' }}
+        className="min-h-[60px] transition-opacity duration-500"
+        style={{ fontFamily: '"Operator Mono SSm Lig", monospace', opacity: vizMode ? 0.5 : 1 }}
       />
     </div>
   );
@@ -307,8 +308,10 @@ export function Mixer() {
   const [vizTypes, setVizTypes] = useState({});  // { trackId: 'pianoroll' | 'punchcard' | null }
   const [started, setStarted] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [vizMode, setVizMode] = useState(false); // false=edit, true=viz fullscreen
   const masterRef = useRef(null);
   const masterContainerRef = useRef(null);
+  const curlRef = useRef(null);
   const debounceTimers = useRef({});
 
   // Init master StrudelMirror (hidden, handles all audio)
@@ -377,10 +380,29 @@ export function Mixer() {
     }
   }, []);
 
-  // Setup sync + master on mount
+  // Setup sync + master + particles on mount
   useEffect(() => {
     initMaster();
     initMixerSync(handleSyncMessage);
+    curlRef.current = new CurlParticles();
+    return () => {
+      curlRef.current?.destroy();
+      curlRef.current = null;
+    };
+  }, []);
+
+  // Sync viz mode to particle system + keyboard shortcut
+  useEffect(() => {
+    curlRef.current?.setForeground(vizMode);
+  }, [vizMode]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.cm-editor')) return;
+      if (e.code === 'KeyV') setVizMode(v => !v);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   // Track code change — debounced to avoid hammering the server
@@ -534,7 +556,7 @@ export function Mixer() {
   const sortedTrackIds = Object.keys(tracks).sort();
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="text-foreground" style={{ background: 'transparent', position: 'relative', zIndex: 2 }}>
       {/* Top bar */}
       <div id="mixer-toolbar" className="fixed top-0 left-0 right-0 z-10 flex items-center gap-2 px-4 py-2 border-b border-lineHighlight" style={{ backgroundColor: '#1a1a1a' }}>
         <span className="font-mono text-sm font-bold mr-2">kolacik mixer</span>
@@ -585,11 +607,21 @@ export function Mixer() {
           + track
         </button>
 
+        <button
+          onClick={() => setVizMode(v => !v)}
+          className={`px-3 py-1 rounded text-sm font-mono cursor-pointer ${
+            vizMode ? 'bg-purple-700 text-white' : 'bg-background text-foreground hover:bg-purple-700'
+          }`}
+          title="Toggle viz mode (V)"
+        >
+          {vizMode ? '◉ viz' : '○ viz'}
+        </button>
+
         <div id="sync-status" className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} title={connected ? 'connected' : 'disconnected'} />
       </div>
 
       {/* Track panels */}
-      <div className="p-4 flex flex-col gap-3" style={{ marginTop: '3rem' }}>
+      <div className="p-4 flex flex-col gap-3" style={{ marginTop: '3rem', pointerEvents: vizMode ? 'none' : 'auto' }}>
         {sortedTrackIds.map((id) => (
           <TrackPanel
             key={id}
@@ -600,6 +632,7 @@ export function Mixer() {
             group={mixState.groups?.[id] ?? null}
             viz={vizTypes[id] || null}
             started={started}
+            vizMode={vizMode}
             onCodeChange={handleTrackCodeChange}
             onMute={handleMute}
             onSolo={handleSolo}
