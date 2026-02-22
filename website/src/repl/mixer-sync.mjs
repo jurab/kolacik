@@ -61,6 +61,10 @@ export function sendError(message, type = 'error') {
   send({ type, message });
 }
 
+export function sendDebug(msg) {
+  send({ type: 'debug', msg });
+}
+
 function send(data) {
   if (ws?.readyState === 1) {
     ws.send(JSON.stringify(data));

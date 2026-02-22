@@ -1,6 +1,8 @@
 // CurlParticles.mjs — Curl noise particle system for mixer background
 // Ported from poems/artifacts/13-cloud
 
+import { sendDebug } from './mixer-sync.mjs';
+
 // ============================================================
 // Inline 2D Simplex Noise (based on simplex-noise.js by Jonas Wagner)
 // ============================================================
@@ -101,6 +103,7 @@ export class CurlParticles {
     this.particles = [];
     this.raf = null;
     this.foreground = false;
+    this.seenHaps = new Set(); // track processed onsets by identity
 
     // Effect accumulators (for Phase 2 — music reactivity)
     this.effects = {
@@ -151,6 +154,8 @@ export class CurlParticles {
       this.particles.push({
         x: this.centerX + Math.cos(angle) * radius,
         y: this.centerY + Math.sin(angle) * radius,
+        fx: 0, // effect displacement x
+        fy: 0, // effect displacement y
         alpha: 0.3 + Math.random() * 0.7,
         orbitRadius: radius,
         orbitAngle: angle,
@@ -175,6 +180,11 @@ export class CurlParticles {
 
     ctx.clearRect(0, 0, width, height);
 
+    // Consume burst — apply once, then zero it
+    const fx = this.effects;
+    const burstNow = fx.burst;
+    fx.burst = 0;
+
     const cx = this.centerX;
     const cy = this.centerY;
 
@@ -189,13 +199,28 @@ export class CurlParticles {
       const targetX = cx + Math.cos(p.orbitAngle) * p.orbitRadius;
       const targetY = cy + Math.sin(p.orbitAngle) * p.orbitRadius;
 
-      // Ease toward orbit path + noise perturbation
+      // Update base position — ease toward orbit + noise
       p.x += (targetX - p.x) * 0.02 + nx * noiseStrength;
       p.y += (targetY - p.y) * 0.02 + ny * noiseStrength;
 
-      // Draw
+      // Kick burst — one-shot radial push
+      if (burstNow > 0) {
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        p.fx += (dx / dist) * burstNow;
+        p.fy += (dy / dist) * burstNow;
+      }
+
+      // Decay effect displacement back to zero
+      p.fx *= 0.88;
+      p.fy *= 0.88;
+
+      // Draw at base + effect offset
+      const drawX = p.x + p.fx;
+      const drawY = p.y + p.fy;
       ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.9})`;
-      ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
+      ctx.fillRect(Math.round(drawX) - 1, Math.round(drawY) - 1, 2, 2);
     }
 
     this.raf = requestAnimationFrame(() => this.animate());
@@ -210,9 +235,36 @@ export class CurlParticles {
     }
   }
 
-  // Phase 2 stub — will receive haps from the Drawer
   update(haps, time) {
-    // TODO: process hap events, update effect accumulators
+    // Clean old entries from seenHaps (keep last 200)
+    if (this.seenHaps.size > 200) {
+      const entries = [...this.seenHaps];
+      this.seenHaps = new Set(entries.slice(-100));
+    }
+
+    let kicked = false;
+    for (const hap of haps) {
+      if (!hap.hasOnset()) continue;
+
+      // Deduplicate: use whole.begin as identity (same onset = same begin time)
+      const hapId = `${hap.value?.s || 'synth'}_${hap.whole?.begin}`;
+      if (this.seenHaps.has(hapId)) continue;
+      this.seenHaps.add(hapId);
+
+      const s = hap.value?.s;
+      if (!s) continue;
+
+      const gain = hap.value?.gain ?? 1;
+      const velocity = hap.value?.velocity ?? 1;
+      const intensity = gain * velocity;
+
+      // Kick → radial burst
+      if (s === 'bd' || s === 'kick') {
+        this.effects.burst = Math.max(this.effects.burst, 8 * intensity);
+        kicked = true;
+      }
+    }
+    if (kicked) sendDebug(`KICK burst:${this.effects.burst.toFixed(1)} seen:${this.seenHaps.size} t:${time.toFixed(4)}`);
   }
 
   destroy() {

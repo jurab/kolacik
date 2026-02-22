@@ -6,6 +6,7 @@ import { join, basename } from 'path';
 const PLAYGROUND_FILE = './playground.strudel';
 const ERRORS_FILE = './playground.errors';
 const COMMAND_FILE = './playground.cmd';
+const DEBUG_FILE = './playground.debug';
 const TRACKS_DIR = './tracks';
 const MIX_FILE = './mix.strudel';
 const MIX_STATE_FILE = './mix.json';
@@ -242,6 +243,8 @@ wss.on('connection', async (ws) => {
         const line = `[${timestamp}] ${msg.type.toUpperCase()}: ${msg.message}\n`;
         await writeFile(ERRORS_FILE, line);
         console.log(`⚠️  ${msg.type}: ${msg.message}`);
+      } else if (msg.type === 'debug') {
+        await writeFile(DEBUG_FILE, msg.msg + '\n', { flag: 'a' });
       }
 
       // Mixer: track code from browser
