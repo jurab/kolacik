@@ -116,6 +116,7 @@ export class CurlParticles {
       noiseEvolution: 1,// pad: evolution speed multiplier (1 = default)
       noiseStrength: 1, // pad: flow strength multiplier (1 = default)
       orbitEase: 1,     // pad: orbit tightness multiplier (1 = default)
+      flash: 0,         // stab: alpha/size boost, one-shot, decay 0.85
     };
 
     // Dissonance lookup — interval (semitones mod 12) → score 0-1
@@ -198,6 +199,8 @@ export class CurlParticles {
     // Decay orbit pulse + jitter
     fx.orbitPulse *= 0.92;
     fx.jitter *= 0.8;
+    // Decay flash
+    fx.flash *= 0.9;
     // Ease pad axes back to 1 (overridden by update() while chord active)
     fx.noiseScale += (1 - fx.noiseScale) * 0.03;
     fx.noiseEvolution += (1 - fx.noiseEvolution) * 0.03;
@@ -261,8 +264,11 @@ export class CurlParticles {
       // Draw at base + effect offset + jitter
       const drawX = p.x + p.fx + jx;
       const drawY = p.y + p.fy + jy;
-      ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.9})`;
-      ctx.fillRect(Math.round(drawX) - 1, Math.round(drawY) - 1, 2, 2);
+      // Flash boosts alpha and size
+      const flashAlpha = Math.min(1, p.alpha * 0.9 + fx.flash * 0.8);
+      const flashSize = fx.flash > 0.05 ? 2 + Math.round(fx.flash * 4) : 2;
+      ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+      ctx.fillRect(Math.round(drawX) - 1, Math.round(drawY) - 1, flashSize, flashSize);
     }
 
     this.raf = requestAnimationFrame(() => this.animate());
@@ -343,6 +349,17 @@ export class CurlParticles {
       // Hats → jitter (sparkle)
       if (s === 'hh' || s === 'oh' || s === 'ch') {
         this.effects.jitter = Math.max(this.effects.jitter, 20 * intensity);
+      }
+
+      // Stab → brightness flash (short percussive synth, high note)
+      const synthSet = ['sawtooth', 'sine', 'triangle', 'square'];
+      if (synthSet.includes(s) && note != null) {
+        const midi = typeof note === 'number' ? note : this._noteToMidi(note);
+        const dur = hap.duration ? Number(hap.duration) : (hap.whole ? Number(hap.whole.end) - Number(hap.whole.begin) : 1);
+        if (midi != null && midi >= 48 && dur < 0.5) {
+          this.effects.flash = Math.max(this.effects.flash, 1.5 * intensity);
+          sendDebug(`STAB note:${note} midi:${midi} dur:${dur.toFixed(2)} flash:${this.effects.flash.toFixed(2)}`);
+        }
       }
 
       // Bass → orbit swell (low notes expand the cloud)
