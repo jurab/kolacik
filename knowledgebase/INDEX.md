@@ -7,6 +7,7 @@ Reference library for building Kolacik — a music learning workbench.
 ### 1. Dance Music Manual — Rick Snoman, 4th Ed (2019)
 **File:** `dance-music-manual-snoman.pdf` (38 MB)
 **Type:** Production bible — the single most useful reference for everything we build.
+**PDF offset:** PDF page = book page + 15 (e.g., book p.413 → PDF p.428)
 
 | Chapters | Topic | Kolacik Relevance |
 |---|---|---|

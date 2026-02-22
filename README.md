@@ -79,6 +79,7 @@ The sync server compiles all track files into `mix.strudel`:
 - Sorted alphabetically for deterministic order
 - Muted tracks get `_$:` prefix (native Strudel silence — atomic, no dropout)
 - Each track tagged with `.tag('trackId')` for per-track effect routing
+- Each track assigned `.orbit(n)` for isolated effects (delay/reverb don't bleed between tracks)
 - Global FX appended at end
 - BPM set via `setcpm(bpm/4)` when configured
 

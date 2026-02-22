@@ -26,6 +26,10 @@ node sync-server.mjs &
 # 3. Open http://localhost:4321 in browser
 ```
 
+## Knowledgebase
+
+`knowledgebase/` contains music production reference books (PDFs) with an annotated `INDEX.md` mapping chapters to Kolacik features. **Consult these when building tracks** — they have genre recipes, drum patterns, chord progressions, synth patches, and music theory explanations. Read `knowledgebase/INDEX.md` first to find the right resource.
+
 ## Documentation
 
 All learning materials are in the codebase:
@@ -89,6 +93,36 @@ Multi-track mixer at `http://localhost:4321/mixer`. Each track is a `.strudel` f
 - After writing tracks, verify with `cat mix.strudel` that all tracks compiled
 - If tracks disappear: restart sync server (`kill` + `node sync-server.mjs &`), then refresh browser
 - macOS `fs.watch` can get confused by rapid file writes. The watcher has a 300ms debounce + ENOENT retry, but if many files are written simultaneously it can still lose tracks. Write files via the Write tool (which is sequential) rather than parallel bash commands.
+
+### Setting Up a New Piece
+When creating tracks from scratch, set up `mix.json` alongside the track files:
+
+1. **Clear old tracks**: `rm tracks/*.strudel`
+2. **Write track files** to `tracks/<name>.strudel` (one per instrument)
+3. **Write `mix.json`** with:
+   - `bpm` — tempo
+   - `groups` — assign each track a number key (1-9) for mute toggling
+   - `trackFx` — assign a visual particle effect per track
+   - `muted` — list of track names to start muted (optional)
+
+**Available visual FX** (for `trackFx`): `burst` (radial push), `orbitPulse` (angular kick), `tangent` (perpendicular push), `jitter` (sparkle), `flash` (brightness), `swell` (orbit expansion), `pad` (tension noise), `none`, `auto`
+
+Choose FX that match the instrument's character — `burst` for kicks, `jitter` for hats, `swell` for bass, etc. Auto-detect matches by sample name (`bd`→burst, `hh`→jitter) but won't work for synths or non-standard track names.
+
+**The compiler auto-injects** `.tag(trackId)` and `.orbit(n)` on every track — each track gets its own effect bus automatically. No need to add these in track code.
+
+Example `mix.json`:
+```json
+{
+  "muted": [],
+  "solo": [],
+  "bpm": 110,
+  "groups": { "kick": 1, "snare": 2, "hats": 3, "bass": 4 },
+  "trackFx": { "kick": "burst", "snare": "orbitPulse", "hats": "jitter", "bass": "swell" }
+}
+```
+
+**Note:** The browser syncs mixer state back to `mix.json`. If you write mix.json from CLI, the browser may overwrite it on next state change. Write mix.json, then reload the browser to pick up the new state.
 
 ### Artifacts (save/load pieces)
 - `scripts/save-piece.sh <name>` — saves current tracks + mix.json to `artifacts/<name>/`
