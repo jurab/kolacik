@@ -111,7 +111,15 @@ export class CurlParticles {
       swell: 1,        // 1 = no swell, >1 = expanded orbits
       orbitPulse: 0,    // clap: orbit speed multiplier, decay 0.92
       jitter: 0,        // hats: per-particle random offset, decay 0.8
+      tangent: 0,       // perc: tangential push, consumed per-frame like burst
+      noiseScale: 1,    // pad: noise scale multiplier (1 = default)
+      noiseEvolution: 1,// pad: evolution speed multiplier (1 = default)
+      noiseStrength: 1, // pad: flow strength multiplier (1 = default)
+      orbitEase: 1,     // pad: orbit tightness multiplier (1 = default)
     };
+
+    // Dissonance lookup — interval (semitones mod 12) → score 0-1
+    this._dissonance = [0, 1, 0.8, 0.3, 0.2, 0.1, 0.9, 0.05, 0.4, 0.3, 0.7, 0.85];
 
     // Create canvas
     this.canvas = document.createElement('canvas');
@@ -182,31 +190,44 @@ export class CurlParticles {
     const fx = this.effects;
     const burstNow = fx.burst;
     fx.burst = 0;
+    const tangentNow = fx.tangent;
+    fx.tangent = 0;
 
     // Decay swell back to 1
     fx.swell += (1 - fx.swell) * 0.03;
     // Decay orbit pulse + jitter
     fx.orbitPulse *= 0.92;
     fx.jitter *= 0.8;
+    // Ease pad axes back to 1 (overridden by update() while chord active)
+    fx.noiseScale += (1 - fx.noiseScale) * 0.03;
+    fx.noiseEvolution += (1 - fx.noiseEvolution) * 0.03;
+    fx.noiseStrength += (1 - fx.noiseStrength) * 0.03;
+    fx.orbitEase += (1 - fx.orbitEase) * 0.03;
 
     const cx = this.centerX;
     const cy = this.centerY;
+    const effectiveScale = params.scale * fx.noiseScale;
+
+    // Pad modulates evolution speed
+    this.time += params.evolution * (fx.noiseEvolution - 1);
 
     for (const p of particles) {
       // Slow orbit around center + clap pulse adds angular kick
       p.orbitAngle += p.orbitSpeed + fx.orbitPulse * 0.02;
 
       // Gentle curl noise displacement on top of orbit
-      const [nx, ny] = this.curl(p.x / params.scale, p.y / params.scale);
-      const noiseStrength = params.speed;
+      const [nx, ny] = this.curl(p.x / effectiveScale, p.y / effectiveScale);
+      const noiseStrength = params.speed * fx.noiseStrength;
 
       const swelledRadius = p.orbitRadius * fx.swell;
       const targetX = cx + Math.cos(p.orbitAngle) * swelledRadius;
       const targetY = cy + Math.sin(p.orbitAngle) * swelledRadius;
 
       // Update base position — ease toward orbit + noise
-      p.x += (targetX - p.x) * 0.02 + nx * noiseStrength;
-      p.y += (targetY - p.y) * 0.02 + ny * noiseStrength;
+      // orbitEase: 1=default(0.02), <1=looser(noise dominates), >1=tighter
+      const ease = 0.02 * fx.orbitEase;
+      p.x += (targetX - p.x) * ease + nx * noiseStrength;
+      p.y += (targetY - p.y) * ease + ny * noiseStrength;
 
       // Kick burst — one-shot radial push
       if (burstNow > 0) {
@@ -215,6 +236,15 @@ export class CurlParticles {
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         p.fx += (dx / dist) * burstNow;
         p.fy += (dy / dist) * burstNow;
+      }
+
+      // Perc — tangential push (perpendicular to radial)
+      if (tangentNow > 0) {
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        p.fx += (-dy / dist) * tangentNow;
+        p.fy += (dx / dist) * tangentNow;
       }
 
       // Decay effect displacement back to zero
@@ -305,6 +335,11 @@ export class CurlParticles {
         this.effects.orbitPulse = Math.max(this.effects.orbitPulse, 3 * intensity);
       }
 
+      // Perc → tangential push
+      if (s === 'rim' || s === 'clave' || s === 'cowbell') {
+        this.effects.tangent = Math.max(this.effects.tangent, 24 * intensity);
+      }
+
       // Hats → jitter (sparkle)
       if (s === 'hh' || s === 'oh' || s === 'ch') {
         this.effects.jitter = Math.max(this.effects.jitter, 20 * intensity);
@@ -322,6 +357,48 @@ export class CurlParticles {
           sendDebug(`BASS note:${note} midi:${midi} swell:${this.effects.swell.toFixed(2)}`);
         }
       }
+    }
+
+    // Pad detection — simultaneous synth notes (chords = 3+) → tension-driven effects
+    const synthSet = ['sawtooth', 'sine', 'triangle', 'square'];
+    const chordMidis = [];
+    for (const hap of haps) {
+      const s = hap.value?.s;
+      const note = hap.value?.note;
+      if (!synthSet.includes(s) || note == null) continue;
+      const begin = Number(hap.whole?.begin);
+      const end = Number(hap.whole?.end);
+      if (begin > time || end <= time) continue;
+      const midi = typeof note === 'number' ? note : this._noteToMidi(note);
+      if (midi != null) chordMidis.push(midi);
+    }
+    if (chordMidis.length >= 3) {
+      chordMidis.sort((a, b) => a - b);
+
+      // Compute tension from all pairwise intervals
+      let totalDissonance = 0;
+      let pairs = 0;
+      for (let i = 0; i < chordMidis.length; i++) {
+        for (let j = i + 1; j < chordMidis.length; j++) {
+          const interval = (chordMidis[j] - chordMidis[i]) % 12;
+          totalDissonance += this._dissonance[interval];
+          pairs++;
+        }
+      }
+      const tension = pairs > 0 ? totalDissonance / pairs : 0; // 0-1
+
+      const root = chordMidis[0];
+      // Root pitch → noise scale (low = big smooth features, high = tight)
+      this.effects.noiseScale = 0.4 + (root - 24) / 48 * 1.0; // ~0.4-1.4
+
+      // Tension → evolution speed (calm=1x, tense=5x)
+      this.effects.noiseEvolution = 1 + tension * 4;
+      // Tension → flow strength (calm=1x, tense=3x)
+      this.effects.noiseStrength = 1 + tension * 2;
+      // Tension → orbit looseness (calm=1x tight, tense=0.2x loose)
+      this.effects.orbitEase = 1 - tension * 0.8;
+
+      sendDebug(`CHORD [${chordMidis}] tension:${tension.toFixed(2)} evo:${this.effects.noiseEvolution.toFixed(1)} str:${this.effects.noiseStrength.toFixed(1)} ease:${this.effects.orbitEase.toFixed(2)}`);
     }
   }
 

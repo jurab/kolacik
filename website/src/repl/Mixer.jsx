@@ -385,6 +385,17 @@ export function Mixer() {
     initMaster();
     initMixerSync(handleSyncMessage);
     curlRef.current = new CurlParticles();
+
+    // Wire master Drawer → particle system
+    const master = masterRef.current;
+    if (master) {
+      const origDraw = master.onDraw.bind(master);
+      master.onDraw = (haps, time, painters) => {
+        origDraw(haps, time, painters);
+        curlRef.current?.update(haps, time);
+      };
+    }
+
     return () => {
       curlRef.current?.destroy();
       curlRef.current = null;
