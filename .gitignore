@@ -145,8 +145,8 @@ fabric.properties
 samples/*
 !samples/README.md
 .idea/
-playground.strudel
-playground.errors
+playground.*
+!playground.strudel.example
 /tracks/
 /mix.strudel
 /mix.json
