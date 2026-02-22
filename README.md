@@ -23,7 +23,7 @@ Multi-track live coding interface. Each track is a `.strudel` file in `/tracks/`
 - **Per-track code editors** with syntax highlighting and independent visualization
 - **Mute/Solo** per track — uses Strudel's native `_$:` muting for gapless toggling
 - **Track groups** (0-9) — number keys toggle mute for entire groups
-- **BPM control** and **global FX editor** (post-processing chain applied to all tracks)
+- **BPM control** with tap-tempo style adjustment
 - **Track status** — green/red names show playing/muted state, group number prefix
 - **Add/remove tracks** from the UI — files created/deleted on disk automatically
 
@@ -92,10 +92,25 @@ browser (localhost:4321)          sync-server (ws://4322)          filesystem
          │──── mixer:track ──────────────►│──── writeFile ────────────►│
          │──── mixer:state ──────────────►│──── writeFile ────────────►│
          │                                │                            │
-  StrudelMirror (master)          compile() merges all              CLI / editor
-  CurlParticles (viz)             tracks into mix.strudel           writes files
-  Per-track editors (silent)
+  Mixer.jsx (orchestration)       compiler.mjs (pure compile)     CLI / editor
+  ├─ MixerToolbar.jsx             sync-server.mjs (ws + watch)    writes files
+  ├─ TrackPanel.jsx
+  └─ effects/
+     ├─ effectDetector.mjs        hap → effect routing (no DOM)
+     └─ CurlParticles.mjs        curl noise particles (no Strudel)
 ```
+
+### Key modules
+
+| File | Lines | Role |
+|---|---|---|
+| `compiler.mjs` | 31 | Pure function: tracks + mixState → compiled code string |
+| `sync-server.mjs` | ~300 | WebSocket server, file watching, imports compiler |
+| `website/src/repl/Mixer.jsx` | 361 | Orchestration: state, refs, sync, keyboard, render |
+| `website/src/repl/components/TrackPanel.jsx` | 231 | Per-track StrudelMirror + editor + controls |
+| `website/src/repl/components/MixerToolbar.jsx` | 57 | Transport, BPM, mute-all, add-track, viz toggle |
+| `website/src/repl/effects/effectDetector.mjs` | 176 | Hap → effect routing, pad/chord detection, no DOM |
+| `website/src/repl/effects/CurlParticles.mjs` | 271 | Curl noise particle renderer, no Strudel imports |
 
 ## Keyboard Shortcuts
 

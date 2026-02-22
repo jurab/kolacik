@@ -2,6 +2,7 @@ import { WebSocketServer } from 'ws';
 import { watchFile, watch, existsSync, mkdirSync } from 'fs';
 import { readFile, writeFile, readdir, unlink, stat } from 'fs/promises';
 import { join, basename } from 'path';
+import { compile } from './compiler.mjs';
 
 const PLAYGROUND_FILE = './playground.strudel';
 const ERRORS_FILE = './playground.errors';
@@ -87,39 +88,12 @@ async function loadAllTracks() {
   } catch {}
 }
 
-function compile() {
-  let code = '';
-  const { muted = [], solo = [], bpm, globalFx } = mixState;
-  const hasSolo = solo.length > 0;
-
-  if (bpm) code += `setcpm(${bpm}/4)\n\n`;
-
-  // Sort track ids for deterministic order
-  const sortedIds = Object.keys(tracks).sort();
-
-  for (const id of sortedIds) {
-    const isMuted = muted.includes(id);
-    const isSoloed = solo.includes(id);
-    const shouldMute = isMuted || (hasSolo && !isSoloed);
-
-    code += `// == ${id} ==\n`;
-    let trackCode = tracks[id].trim();
-    if (shouldMute) {
-      trackCode = trackCode.replace(/^\$:/, '_$:');
-    }
-    trackCode += `.tag('${id}')`;
-    code += trackCode + '\n\n';
-  }
-
-  if (globalFx?.trim()) {
-    code += `// == global fx ==\n${globalFx.trim()}\n`;
-  }
-
-  return code;
+function compileMix() {
+  return compile(tracks, mixState);
 }
 
 function compileAndBroadcast() {
-  const code = compile();
+  const code = compileMix();
   if (code === lastCompiledCode) return;
   lastCompiledCode = code;
 
@@ -328,7 +302,7 @@ watchFile(COMMAND_FILE, { interval: 200 }, async () => {
 await loadMixState();
 await loadAllTracks();
 lastContent = await loadFile();
-lastCompiledCode = compile();
+lastCompiledCode = compileMix();
 await writeFile(MIX_FILE, lastCompiledCode).catch(() => {});
 
 console.log(`🍪 Kolacik sync server running on ws://localhost:${PORT}`);
