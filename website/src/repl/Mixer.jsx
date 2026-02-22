@@ -20,6 +20,9 @@ import {
   sendAddTrack,
   sendRemoveTrack,
   sendMixerState,
+  sendSavePiece,
+  sendLoadPiece,
+  sendDeletePiece,
 } from './mixer-sync.mjs';
 import { setInterval, clearInterval } from 'worker-timers';
 
@@ -38,6 +41,7 @@ if (typeof window !== 'undefined') {
 export function Mixer() {
   const [tracks, setTracks] = useState({});
   const [mixState, setMixState] = useState({ muted: [], solo: [], bpm: null, globalFx: '', groups: {}, trackFx: {} });
+  const [pieces, setPieces] = useState([]);
   const [vizTypes, setVizTypes] = useState({});
   const [started, setStarted] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -86,10 +90,13 @@ export function Mixer() {
     if (msg.type === 'mixer:init') {
       setTracks(msg.tracks || {});
       setMixState(msg.state || { muted: [], solo: [], bpm: null, globalFx: '', groups: {} });
+      setPieces(msg.pieces || []);
       setConnected(true);
       if (msg.compiled && masterRef.current) {
         masterRef.current.setCode(msg.compiled);
       }
+    } else if (msg.type === 'pieces:list') {
+      setPieces(msg.pieces || []);
     } else if (msg.type === 'mixer:compiled') {
       if (masterRef.current) {
         masterRef.current.setCode(msg.code);
@@ -251,6 +258,20 @@ export function Mixer() {
     });
   }, []);
 
+  // Piece management
+  const handleSavePiece = useCallback(() => {
+    const name = prompt('Save piece as:');
+    if (name?.trim()) sendSavePiece(name.trim());
+  }, []);
+
+  const handleLoadPiece = useCallback((name) => {
+    sendLoadPiece(name);
+  }, []);
+
+  const handleDeletePiece = useCallback((name) => {
+    if (confirm(`Delete piece "${name}"?`)) sendDeletePiece(name);
+  }, []);
+
   // Mute all toggle
   const handleMuteAll = useCallback(() => {
     setMixState(prev => {
@@ -309,12 +330,16 @@ export function Mixer() {
         connected={connected}
         bpm={mixState.bpm}
         vizMode={vizMode}
+        pieces={pieces}
         onPlay={handlePlayAll}
         onStop={handleStop}
         onBpmChange={handleBpmChange}
         onMuteAll={handleMuteAll}
         onAddTrack={handleAddTrack}
         onVizToggle={() => setVizMode(v => !v)}
+        onSavePiece={handleSavePiece}
+        onLoadPiece={handleLoadPiece}
+        onDeletePiece={handleDeletePiece}
       />
 
       <div className="p-4 flex flex-col gap-3" style={{ marginTop: '3rem', pointerEvents: vizMode ? 'none' : 'auto' }}>
@@ -349,7 +374,7 @@ export function Mixer() {
 
         {sortedTrackIds.length === 0 && (
           <div className="text-center text-foreground opacity-40 font-mono py-8">
-            no tracks — click "+ track" or write to tracks/*.strudel
+            no tracks — click "+ track" or load a piece
           </div>
         )}
       </div>

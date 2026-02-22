@@ -20,8 +20,8 @@ function connect() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        // Only handle mixer-related messages
-        if (msg.type?.startsWith('mixer:') || msg.type === 'play' || msg.type === 'stop' || msg.type === 'toggle' || msg.type === 'play-once') {
+        // Only handle mixer-related and piece-related messages
+        if (msg.type?.startsWith('mixer:') || msg.type?.startsWith('pieces:') || msg.type === 'play' || msg.type === 'stop' || msg.type === 'toggle' || msg.type === 'play-once') {
           onMessage?.(msg);
         }
       } catch (e) {
@@ -63,6 +63,18 @@ export function sendError(message, type = 'error') {
 
 export function sendDebug(msg) {
   send({ type: 'debug', msg });
+}
+
+export function sendSavePiece(name) {
+  send({ type: 'pieces:save', name });
+}
+
+export function sendLoadPiece(name) {
+  send({ type: 'pieces:load', name });
+}
+
+export function sendDeletePiece(name) {
+  send({ type: 'pieces:delete', name });
 }
 
 function send(data) {

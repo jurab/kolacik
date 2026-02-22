@@ -20,7 +20,7 @@ Kolacik is a fork of [Strudel](https://strudel.cc/) - a browser-based live codin
 # 1. Start the dev server (from kolacik root)
 pnpm dev
 
-# 2. Start the sync server (enables Claude to push code to browser)
+# 2. Start the sync server (HTTP API + WebSocket, backed by SQLite)
 node sync-server.mjs &
 
 # 3. Open http://localhost:4321 in browser
@@ -40,12 +40,12 @@ Online (original Strudel): https://strudel.cc/learn
 
 ## Live Sync System
 
-I can push code directly to Jura's browser by writing to:
+The sync server runs on `http://localhost:4322` (HTTP + WebSocket), backed by SQLite (`kolacik.db`).
+
+For the **single REPL** (playground), push code by writing to:
 ```
 /Users/jura/Git/kolacik/playground.strudel
 ```
-
-The sync server (running on `ws://localhost:4322`) watches this file and pushes changes to the browser in ~300ms.
 
 **To start sync server** (if not running):
 ```bash
@@ -79,61 +79,93 @@ Warnings and errors sync back to me via:
 
 ## Mixer Interface
 
-Multi-track mixer at `http://localhost:4321/mixer`. Each track is a `.strudel` file in `/tracks/`.
+Multi-track mixer at `http://localhost:4321/mixer`. All track data lives in SQLite (`kolacik.db`).
 
 ### How It Works
-- `sync-server.mjs` watches `/tracks/*.strudel` + `mix.json`, compiles them into `mix.strudel`
+- `sync-server.mjs` serves HTTP API + WebSocket, backed by SQLite
+- All track code and mixer state stored in SQLite `pieces` table (live session = `_live` row)
 - Browser connects via WebSocket, receives tracks + compiled code
 - Hidden master `StrudelMirror` handles all audio; per-track editors show code + visualization
 - Mute/solo per track, number keys toggle groups, BPM control
+- Piece selector in toolbar to save/load sessions
 
-### Writing Tracks from CLI
-- Each track file needs a `$:` prefix: `$: stack(s("bd"), s("sd"))` — bare `stack()` won't play
-- **Do NOT use `sed` in bash** — it's aliased to `sd` (a different tool) on this system. Use the Write/Edit tools or python for file modifications.
-- After writing tracks, verify with `cat mix.strudel` that all tracks compiled
-- If tracks disappear: restart sync server (`kill` + `node sync-server.mjs &`), then refresh browser
-- macOS `fs.watch` can get confused by rapid file writes. The watcher has a 300ms debounce + ENOENT retry, but if many files are written simultaneously it can still lose tracks. Write files via the Write tool (which is sequential) rather than parallel bash commands.
+### Writing Tracks via HTTP API
+
+Claude writes tracks using the HTTP API — no files involved:
+
+```bash
+# Write a track (server compiles + pushes to browser automatically)
+curl -s -X PUT http://localhost:4322/api/tracks/kick --data-binary '$: s("bd*4").lpf(800)'
+
+# Read a track
+curl -s http://localhost:4322/api/tracks/kick
+
+# List all tracks
+curl -s http://localhost:4322/api/tracks
+
+# Delete a track
+curl -s -X DELETE http://localhost:4322/api/tracks/kick
+```
+
+For multi-line track code, use heredoc:
+```bash
+curl -s -X PUT http://localhost:4322/api/tracks/kick --data-binary @- << 'STRUDEL'
+$: s("bd ~ ~ bd ~ ~ bd ~ bd ~ ~ ~ bd ~ ~ ~")
+  .gain(1.3).lpf(180)
+STRUDEL
+```
+
+- Each track needs a `$:` prefix: `$: stack(s("bd"), s("sd"))` — bare `stack()` won't play
+- **Do NOT use `sed` in bash** — it's aliased to `sd` (a different tool) on this system.
+- **The compiler auto-injects** `.tag(trackId)` and `.orbit(n)` on every track — each track gets its own effect bus automatically.
+
+### Managing State via HTTP API
+
+```bash
+# Read mixer state
+curl -s http://localhost:4322/api/state
+
+# Update state (partial merge)
+curl -s -X PUT http://localhost:4322/api/state -H 'Content-Type: application/json' \
+  -d '{"bpm":120,"muted":[],"groups":{"kick":1,"snare":2},"trackFx":{"kick":"burst","snare":"flash"}}'
+
+# Play/stop
+curl -s -X POST http://localhost:4322/api/play
+curl -s -X POST http://localhost:4322/api/stop
+```
 
 ### Setting Up a New Piece
-When creating tracks from scratch, set up `mix.json` alongside the track files:
 
-1. **Clear old tracks**: `rm tracks/*.strudel`
-2. **Write track files** to `tracks/<name>.strudel` (one per instrument)
-3. **Write `mix.json`** with:
-   - `bpm` — tempo
-   - `groups` — assign each track a number key (1-9) for mute toggling
-   - `trackFx` — assign a visual particle effect per track
-   - `muted` — list of track names to start muted (optional)
+1. **Write tracks** via HTTP API (one PUT per track)
+2. **Set state** via HTTP API with bpm, groups, trackFx
+3. **Save as piece** for later: `curl -s -X POST http://localhost:4322/api/pieces/save -d '{"name":"my-piece"}'`
 
 **Available visual FX** (for `trackFx`): `burst` (radial push), `orbitPulse` (angular kick), `tangent` (perpendicular push), `jitter` (sparkle), `flash` (brightness), `swell` (orbit expansion), `pad` (tension noise), `none`, `auto`
 
-Choose FX that match the instrument's character — `burst` for kicks, `jitter` for hats, `swell` for bass, etc. Auto-detect matches by sample name (`bd`→burst, `hh`→jitter) but won't work for synths or non-standard track names.
+Choose FX that match the instrument's character — `burst` for kicks, `jitter` for hats, `swell` for bass, etc.
 
-**The compiler auto-injects** `.tag(trackId)` and `.orbit(n)` on every track — each track gets its own effect bus automatically. No need to add these in track code.
+### Pieces (save/load sessions)
 
-Example `mix.json`:
-```json
-{
-  "muted": [],
-  "solo": [],
-  "bpm": 110,
-  "groups": { "kick": 1, "snare": 2, "hats": 3, "bass": 4 },
-  "trackFx": { "kick": "burst", "snare": "orbitPulse", "hats": "jitter", "bass": "swell" }
-}
+```bash
+# List saved pieces
+curl -s http://localhost:4322/api/pieces
+
+# Save current session
+curl -s -X POST http://localhost:4322/api/pieces/save -d '{"name":"dub-session"}'
+
+# Load a piece (replaces current session)
+curl -s -X POST http://localhost:4322/api/pieces/load -d '{"name":"dub-session"}'
+
+# Delete a piece
+curl -s -X DELETE http://localhost:4322/api/pieces/dub-session
 ```
 
-**Note:** The browser syncs mixer state back to `mix.json`. If you write mix.json from CLI, the browser may overwrite it on next state change. Write mix.json, then reload the browser to pick up the new state.
-
-### Artifacts (save/load pieces)
-- `scripts/save-piece.sh <name>` — saves current tracks + mix.json to `artifacts/<name>/`
-- `scripts/load-piece.sh <name>` — loads saved piece into `/tracks/`
+Pieces are also accessible from the browser via the toolbar dropdown.
 
 ### Troubleshooting
-- **Tracks disappear from mixer**: The macOS fs.watch watcher got confused. Restart sync server, refresh browser.
-- **Editors show but are empty**: Likely stale WebSocket state. Restart sync server, refresh browser.
 - **"webpage reloaded because a problem occurred"**: Safari tab crashed, probably a StrudelMirror init error. Restart astro dev server (`pnpm dev`), then reload.
 - **Astro dev server dies silently**: Check with `pgrep -f astro`. If dead, restart with `pnpm dev`.
-- **Browser console empty on mixer page**: Component isn't mounting. Restart astro dev server.
+- **Browser not updating**: Restart sync server, refresh browser.
 
 ## Common Gotchas
 

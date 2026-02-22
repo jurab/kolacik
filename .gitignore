@@ -150,3 +150,6 @@ playground.*
 /tracks/
 /mix.strudel
 /mix.json
+/kolacik.db
+/kolacik.db-wal
+/kolacik.db-shm

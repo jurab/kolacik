@@ -52,13 +52,13 @@
     "@strudel/transpiler": "workspace:*",
     "@strudel/webaudio": "workspace:*",
     "@strudel/xen": "workspace:*",
+    "better-sqlite3": "^12.6.2",
     "ws": "^8.18.3"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.5",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.19.0",
-
     "@vitest/coverage-v8": "3.0.4",
     "@vitest/ui": "^3.0.4",
     "acorn": "^8.14.0",
@@ -69,7 +69,6 @@
     "globals": "^15.14.0",
     "jsdoc": "^4.0.4",
     "jsdoc-json": "^2.0.2",
-
     "playwright": "^1.58.2",
     "prettier": "^3.4.2",
     "vite-plugin-bundle-audioworklet": "workspace:*",
@@ -77,5 +76,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
   }
 }

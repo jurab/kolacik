@@ -1,4 +1,4 @@
-export function MixerToolbar({ started, connected, bpm, vizMode, onPlay, onStop, onBpmChange, onMuteAll, onAddTrack, onVizToggle }) {
+export function MixerToolbar({ started, connected, bpm, vizMode, pieces, onPlay, onStop, onBpmChange, onMuteAll, onAddTrack, onVizToggle, onSavePiece, onLoadPiece, onDeletePiece }) {
   return (
     <div id="mixer-toolbar" className="fixed top-0 left-0 right-0 z-10 flex items-center gap-2 px-4 py-2 border-b border-lineHighlight" style={{ backgroundColor: '#1a1a1a' }}>
       <span className="font-mono text-sm font-bold mr-2">kolacik mixer</span>
@@ -32,6 +32,31 @@ export function MixerToolbar({ started, connected, bpm, vizMode, onPlay, onStop,
       >
         mute all
       </button>
+
+      {/* Piece selector */}
+      <div className="flex items-center gap-1 ml-4 border-l border-lineHighlight pl-4">
+        <select
+          className="px-2 py-1 rounded text-sm font-mono bg-background text-foreground border border-lineHighlight cursor-pointer"
+          value=""
+          onChange={(e) => {
+            if (e.target.value) onLoadPiece(e.target.value);
+            e.target.value = '';
+          }}
+        >
+          <option value="">pieces...</option>
+          {(pieces || []).map(name => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={onSavePiece}
+          className="px-2 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-blue-700 cursor-pointer"
+          title="Save current session as piece"
+        >
+          save
+        </button>
+      </div>
 
       <button
         id="btn-add-track"
