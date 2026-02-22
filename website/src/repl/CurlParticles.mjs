@@ -104,6 +104,7 @@ export class CurlParticles {
     this.raf = null;
     this.foreground = false;
     this.seenHaps = new Set(); // track processed onsets by identity
+    this._activeChordBegin = null; // begin time of chord whose onset we witnessed
 
     // Effect accumulators
     this.effects = {
@@ -376,16 +377,36 @@ export class CurlParticles {
       }
     }
 
-    // Pad detection — simultaneous synth notes (chords = 3+) → tension-driven effects
-    const synthSet = ['sawtooth', 'sine', 'triangle', 'square'];
+    // Pad detection — only activate for chords whose onset we witnessed
+    // (avoids visual leading audio when unmuting mid-chord)
+    const padSynthSet = ['sawtooth', 'sine', 'triangle', 'square'];
     const chordMidis = [];
+
+    // First pass: check if any chord notes have onsets this frame → mark as witnessed
+    for (const hap of haps) {
+      if (!hap.hasOnset()) continue;
+      const s = hap.value?.s;
+      const note = hap.value?.note;
+      if (!padSynthSet.includes(s) || note == null) continue;
+      const begin = Number(hap.whole?.begin);
+      const hapId = `pad_${begin}`;
+      if (!this.seenHaps.has(hapId)) {
+        this.seenHaps.add(hapId);
+        this._activeChordBegin = begin;
+        sendDebug(`PAD onset begin:${begin.toFixed(2)} time:${time.toFixed(2)}`);
+      }
+    }
+
+    // Second pass: collect chord notes, but only from the chord we witnessed
     for (const hap of haps) {
       const s = hap.value?.s;
       const note = hap.value?.note;
-      if (!synthSet.includes(s) || note == null) continue;
+      if (!padSynthSet.includes(s) || note == null) continue;
       const begin = Number(hap.whole?.begin);
       const end = Number(hap.whole?.end);
       if (begin > time || end <= time) continue;
+      // Only include if we witnessed this chord's onset
+      if (begin !== this._activeChordBegin) continue;
       const midi = typeof note === 'number' ? note : this._noteToMidi(note);
       if (midi != null) chordMidis.push(midi);
     }
