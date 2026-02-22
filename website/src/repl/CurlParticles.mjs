@@ -132,12 +132,13 @@ export class CurlParticles {
   }
 
   resize() {
-    const dpr = window.devicePixelRatio || 1;
     this.width = window.innerWidth;
     this.height = window.innerHeight;
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
+    this.canvas.style.width = this.width + 'px';
+    this.canvas.style.height = this.height + 'px';
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.centerX = this.width / 2;
     this.centerY = this.height / 2;
   }
