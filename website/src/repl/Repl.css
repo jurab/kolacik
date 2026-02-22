@@ -100,6 +100,23 @@
   color: var(--mixer-text-subtle);
 }
 
+/* Save input — replaces piece selector in-place */
+.mixer-save-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--mixer-accent);
+  font-family: var(--mixer-font);
+  font-size: 0.7rem;
+  color: var(--mixer-text);
+  padding: 0.15rem 0.3rem;
+}
+.mixer-save-input:focus {
+  outline: none;
+}
+.mixer-save-input::placeholder {
+  color: var(--mixer-text-subtle);
+}
+
 /* Knob buttons — round, protrude below toolbar */
 .mixer-knob {
   width: 36px;

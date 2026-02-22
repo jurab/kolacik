@@ -3,10 +3,20 @@ import { useState, useRef, useEffect } from 'react';
 export function MixerToolbar({ started, connected, bpm, vizMode, pieces, currentPiece, allMuted, onPlay, onStop, onBpmChange, onMuteAll, onClearTracks, onVizToggle, onSavePiece, onLoadPiece }) {
   const [trashArmed, setTrashArmed] = useState(false);
   const trashTimer = useRef(null);
+  const [saveEditing, setSaveEditing] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const saveInputRef = useRef(null);
 
   useEffect(() => {
     return () => { if (trashTimer.current) clearTimeout(trashTimer.current); };
   }, []);
+
+  useEffect(() => {
+    if (saveEditing && saveInputRef.current) {
+      saveInputRef.current.focus();
+      saveInputRef.current.select();
+    }
+  }, [saveEditing]);
 
   const handleTrash = () => {
     if (trashArmed) {
@@ -17,6 +27,30 @@ export function MixerToolbar({ started, connected, bpm, vizMode, pieces, current
       setTrashArmed(true);
       trashTimer.current = setTimeout(() => setTrashArmed(false), 3000);
     }
+  };
+
+  const handleSaveClick = () => {
+    if (saveEditing) {
+      handleSaveSubmit();
+    } else {
+      setSaveName(currentPiece || '');
+      setSaveEditing(true);
+    }
+  };
+
+  const handleSaveSubmit = () => {
+    const name = saveName.trim() || currentPiece;
+    if (name) onSavePiece(name);
+    setSaveEditing(false);
+  };
+
+  const handleSaveCancel = () => {
+    setSaveEditing(false);
+  };
+
+  const handleSaveKeyDown = (e) => {
+    if (e.key === 'Enter') handleSaveSubmit();
+    else if (e.key === 'Escape') handleSaveCancel();
   };
 
   return (
@@ -38,43 +72,51 @@ export function MixerToolbar({ started, connected, bpm, vizMode, pieces, current
           title={trashArmed ? 'Click again to delete all tracks' : 'Clear all tracks'}
           style={{ color: trashArmed ? '#f44' : undefined, fontSize: '0.9rem', padding: '0 0.25rem' }}
         >
-          {trashArmed
-            ? <span style={{ fontSize: '0.75rem' }}>confirm?</span>
-            : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1.5 3.5h11M5 3.5V2a1 1 0 011-1h2a1 1 0 011 1v1.5M3 3.5l.5 8.5a1 1 0 001 1h5a1 1 0 001-1l.5-8.5M5.5 6v4M8.5 6v4" />
-              </svg>
-          }
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1.5 3.5h11M5 3.5V2a1 1 0 011-1h2a1 1 0 011 1v1.5M3 3.5l.5 8.5a1 1 0 001 1h5a1 1 0 001-1l.5-8.5M5.5 6v4M8.5 6v4" />
+          </svg>
         </button>
 
-        <input
-          type="number"
-          className="mixer-bpm-input"
-          value={bpm ?? ''}
-          onChange={(e) => onBpmChange(e.target.value)}
-          placeholder="---"
-          title="BPM"
-        />
-
-        <span style={{ color: 'var(--mixer-border)', userSelect: 'none' }}>|</span>
-
-        <button className="mixer-btn" onClick={onSavePiece} title="Save current session as piece">
-          save
-        </button>
-
-        <select
-          className="mixer-select"
-          value=""
-          onChange={(e) => {
-            if (e.target.value) onLoadPiece(e.target.value);
-            e.target.value = '';
-          }}
-          title="Load piece"
+        <button
+          className="mixer-btn"
+          onClick={handleSaveClick}
+          onMouseDown={saveEditing ? (e) => e.preventDefault() : undefined}
+          title={saveEditing ? 'Click to confirm save' : 'Save current session as piece'}
+          style={{ color: saveEditing ? '#f44' : undefined, fontSize: '0.9rem', padding: '0 0.25rem' }}
         >
-          <option value="">{currentPiece || 'pieces'}</option>
-          {(pieces || []).map(name => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="1" width="10" height="12" rx="1" />
+            <path d="M4 1v4h6V1M4 8h6M4 10.5h3" />
+          </svg>
+        </button>
+
+        {saveEditing ? (
+          <input
+            ref={saveInputRef}
+            className="mixer-save-input"
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            onKeyDown={handleSaveKeyDown}
+            onBlur={handleSaveCancel}
+            placeholder="piece name"
+          />
+        ) : (
+          <select
+            className="mixer-select"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) onLoadPiece(e.target.value);
+              e.target.value = '';
+              e.target.blur();
+            }}
+            title="Load piece"
+          >
+            <option value="">{currentPiece || 'pieces'}</option>
+            {(pieces || []).filter(name => name !== currentPiece).map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* ── Center zone: knob controls (V, Play, M) ── */}
@@ -107,8 +149,16 @@ export function MixerToolbar({ started, connected, bpm, vizMode, pieces, current
         </button>
       </div>
 
-      {/* ── Right zone: connection status ── */}
-      <div className="flex items-center" style={{ marginLeft: 'auto' }}>
+      {/* ── Right zone: BPM, connection status ── */}
+      <div className="flex items-center gap-4" style={{ marginLeft: 'auto' }}>
+        <input
+          type="number"
+          className="mixer-bpm-input"
+          value={bpm ?? ''}
+          onChange={(e) => onBpmChange(e.target.value)}
+          placeholder="---"
+          title="BPM"
+        />
         <div
           style={{
             width: 4,

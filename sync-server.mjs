@@ -356,6 +356,7 @@ wss.on('connection', async (ws) => {
           tracks = loaded.tracks;
           mixState = loaded.state;
           mixState.muted = Object.keys(tracks);
+          mixState.currentPiece = msg.name;
           putState(mixState);
           lastCompiledCode = compile(tracks, mixState);
           await writeFile(MIX_FILE, lastCompiledCode).catch(() => {});

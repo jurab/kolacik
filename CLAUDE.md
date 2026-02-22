@@ -26,6 +26,12 @@ node sync-server.mjs &
 # 3. Open http://localhost:4321 in browser
 ```
 
+**After editing `sync-server.mjs`, `db.mjs`, or `compiler.mjs`**: kill and restart the sync server. The browser reconnects automatically via WebSocket, but the server process must be restarted to pick up changes.
+
+```bash
+lsof -ti:4322 | xargs kill -9 2>/dev/null; sleep 0.5 && node sync-server.mjs &
+```
+
 ## Knowledgebase
 
 `knowledgebase/` contains music production reference books (PDFs) with an annotated `INDEX.md` mapping chapters to Kolacik features. **Consult these when building tracks** — they have genre recipes, drum patterns, chord progressions, synth patches, and music theory explanations. Read `knowledgebase/INDEX.md` first to find the right resource.
@@ -76,6 +82,18 @@ Warnings and errors sync back to me via:
 ```
 
 **Check this file after pushing code** to see if something silently failed. Jura also sees a toast notification in the UI.
+
+## Debug Logging
+
+The browser can send debug messages over WebSocket. They get appended to `playground.debug`.
+
+From client code (e.g. `Mixer.jsx`):
+```js
+import { sendDebug } from './mixer-sync.mjs';
+sendDebug(`[tag] some message ${value}`);
+```
+
+The server handles `{ type: 'debug', msg }` and appends to the file. Use this instead of `console.log` — it's visible to Claude without needing browser access. The file auto-truncates to last 1000 lines on server start.
 
 ## Mixer Interface
 

@@ -56,6 +56,7 @@ export function Mixer() {
   const tracksRef = useRef(tracks);
   tracksRef.current = tracks;
   const muteAllRef = useRef(null);
+  const preMuteRef = useRef(null);
 
   // Init master StrudelMirror (hidden, handles all audio)
   const initMaster = useCallback(() => {
@@ -90,7 +91,9 @@ export function Mixer() {
   const handleSyncMessage = useCallback((msg) => {
     if (msg.type === 'mixer:init') {
       setTracks(msg.tracks || {});
-      setMixState(msg.state || { muted: [], solo: [], bpm: null, globalFx: '', groups: {} });
+      const state = msg.state || { muted: [], solo: [], bpm: null, globalFx: '', groups: {} };
+      setMixState(state);
+      setCurrentPiece(state.currentPiece || null);
       setPieces(msg.pieces || []);
       setConnected(true);
       if (msg.compiled && masterRef.current) {
@@ -115,6 +118,7 @@ export function Mixer() {
       });
     } else if (msg.type === 'mixer:state') {
       setMixState(msg.state);
+      if ('currentPiece' in msg.state) setCurrentPiece(msg.state.currentPiece || null);
     } else if (msg.type === 'play') {
       masterRef.current?.evaluate();
     } else if (msg.type === 'stop') {
@@ -269,11 +273,15 @@ export function Mixer() {
   }, []);
 
   // Piece management
-  const handleSavePiece = useCallback(() => {
-    const name = prompt('Save piece as:');
+  const handleSavePiece = useCallback((name) => {
     if (name?.trim()) {
       sendSavePiece(name.trim());
       setCurrentPiece(name.trim());
+      setMixState(prev => {
+        const next = { ...prev, currentPiece: name.trim() };
+        sendMixerState(next);
+        return next;
+      });
     }
   }, []);
 
@@ -287,12 +295,22 @@ export function Mixer() {
   }, []);
 
 
-  // Mute all toggle
+  // Mute all toggle — independent from per-track muting
+  // Snapshots per-track mute state before engaging, restores on disengage
   const handleMuteAll = useCallback(() => {
     setMixState(prev => {
       const allIds = Object.keys(tracksRef.current);
-      const allMuted = allIds.every(id => prev.muted.includes(id));
-      const next = { ...prev, muted: allMuted ? [] : [...allIds] };
+      const allMuted = allIds.length > 0 && allIds.every(id => prev.muted.includes(id));
+      let next;
+      if (allMuted) {
+        // Disengage: restore previous per-track mute state
+        next = { ...prev, muted: preMuteRef.current || [] };
+        preMuteRef.current = null;
+      } else {
+        // Engage: snapshot current mutes, then mute all
+        preMuteRef.current = [...prev.muted];
+        next = { ...prev, muted: [...allIds] };
+      }
       sendMixerState(next);
       return next;
     });
