@@ -110,6 +110,7 @@ export class CurlParticles {
       burst: 0,
       swell: 1,        // 1 = no swell, >1 = expanded orbits
       orbitPulse: 0,    // clap: orbit speed multiplier, decay 0.92
+      jitter: 0,        // hats: per-particle random offset, decay 0.8
     };
 
     // Create canvas
@@ -184,8 +185,9 @@ export class CurlParticles {
 
     // Decay swell back to 1
     fx.swell += (1 - fx.swell) * 0.03;
-    // Decay orbit pulse
+    // Decay orbit pulse + jitter
     fx.orbitPulse *= 0.92;
+    fx.jitter *= 0.8;
 
     const cx = this.centerX;
     const cy = this.centerY;
@@ -219,9 +221,16 @@ export class CurlParticles {
       p.fx *= 0.88;
       p.fy *= 0.88;
 
-      // Draw at base + effect offset
-      const drawX = p.x + p.fx;
-      const drawY = p.y + p.fy;
+      // Jitter — fresh random each frame (sparkle, not accumulated)
+      let jx = 0, jy = 0;
+      if (fx.jitter > 0.05) {
+        jx = (Math.random() - 0.5) * fx.jitter;
+        jy = (Math.random() - 0.5) * fx.jitter;
+      }
+
+      // Draw at base + effect offset + jitter
+      const drawX = p.x + p.fx + jx;
+      const drawY = p.y + p.fy + jy;
       ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.9})`;
       ctx.fillRect(Math.round(drawX) - 1, Math.round(drawY) - 1, 2, 2);
     }
@@ -294,7 +303,11 @@ export class CurlParticles {
       // Clap/snare → orbit speed pulse
       if (s === 'cp' || s === 'clap' || s === 'sd' || s === 'sn') {
         this.effects.orbitPulse = Math.max(this.effects.orbitPulse, 3 * intensity);
-        sendDebug(`CLAP s:${s} orbitPulse:${this.effects.orbitPulse.toFixed(2)}`);
+      }
+
+      // Hats → jitter (sparkle)
+      if (s === 'hh' || s === 'oh' || s === 'ch') {
+        this.effects.jitter = Math.max(this.effects.jitter, 20 * intensity);
       }
 
       // Bass → orbit swell (low notes expand the cloud)
