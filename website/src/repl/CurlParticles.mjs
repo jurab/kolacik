@@ -298,7 +298,80 @@ export class CurlParticles {
     }
   }
 
-  update(haps, time) {
+  // Fire a specific effect for a hap
+  _fireEffect(effect, hap, intensity) {
+    const note = hap.value?.note;
+    switch (effect) {
+      case 'burst':
+        this.effects.burst = Math.max(this.effects.burst, 8 * intensity);
+        break;
+      case 'orbitPulse':
+        this.effects.orbitPulse = Math.max(this.effects.orbitPulse, 3 * intensity);
+        break;
+      case 'tangent':
+        this.effects.tangent = Math.max(this.effects.tangent, 24 * intensity);
+        break;
+      case 'jitter':
+        this.effects.jitter = Math.max(this.effects.jitter, 20 * intensity);
+        break;
+      case 'flash':
+        this.effects.flash = Math.max(this.effects.flash, 1.5 * intensity);
+        break;
+      case 'swell':
+        if (note != null) {
+          const midi = typeof note === 'number' ? note : this._noteToMidi(note);
+          if (midi != null && midi < 52) {
+            const swellAmount = 1.3 + (1 - (midi - 24) / 28) * 0.5;
+            this.effects.swell = Math.max(this.effects.swell, swellAmount);
+          }
+        }
+        break;
+      // 'pad' and 'none' handled elsewhere
+    }
+  }
+
+  // Auto-detect effect from sample name (original hardcoded logic)
+  _autoDetect(hap, intensity) {
+    const s = hap.value?.s;
+    const note = hap.value?.note;
+
+    if (s === 'bd' || s === 'kick') {
+      this._fireEffect('burst', hap, intensity);
+    }
+    if (s === 'cp' || s === 'clap' || s === 'sd' || s === 'sn') {
+      this._fireEffect('orbitPulse', hap, intensity);
+    }
+    if (s === 'rim' || s === 'clave' || s === 'cowbell') {
+      this._fireEffect('tangent', hap, intensity);
+    }
+    if (s === 'hh' || s === 'oh' || s === 'ch') {
+      this._fireEffect('jitter', hap, intensity);
+    }
+
+    // Stab → brightness flash (short percussive synth, high note)
+    const synthSet = ['sawtooth', 'sine', 'triangle', 'square'];
+    if (synthSet.includes(s) && note != null) {
+      const midi = typeof note === 'number' ? note : this._noteToMidi(note);
+      const dur = hap.duration ? Number(hap.duration) : (hap.whole ? Number(hap.whole.end) - Number(hap.whole.begin) : 1);
+      if (midi != null && midi >= 48 && dur < 0.5) {
+        this._fireEffect('flash', hap, intensity);
+      }
+    }
+
+    // Bass → orbit swell (low notes expand the cloud)
+    if (note != null) {
+      this._fireEffect('swell', hap, intensity);
+    }
+  }
+
+  // Resolve track tag from hap context
+  _getTrackTag(hap) {
+    const tags = hap.context?.tags;
+    if (!tags || tags.length === 0) return null;
+    return tags[tags.length - 1]; // last tag = most specific (the track tag)
+  }
+
+  update(haps, time, trackFx) {
     if (!this._callCount) this._callCount = 0;
     this._callCount++;
     if (this._callCount % 300 === 1) sendDebug(`update called #${this._callCount} haps:${haps.length}`);
@@ -309,111 +382,84 @@ export class CurlParticles {
       this.seenHaps = new Set(entries.slice(-100));
     }
 
-    let kicked = false;
+    // Onset-triggered effects
     for (const hap of haps) {
       if (!hap.hasOnset()) continue;
 
-      // Deduplicate: use whole.begin as identity (same onset = same begin time)
       const hapId = `${hap.value?.s || 'synth'}_${hap.whole?.begin}`;
       if (this.seenHaps.has(hapId)) continue;
       this.seenHaps.add(hapId);
 
-      // Debug: log all hap values (temporary)
-      if (!this._loggedSamples) this._loggedSamples = new Set();
-      const sKey = hap.value?.s || 'none';
-      if (!this._loggedSamples.has(sKey)) {
-        this._loggedSamples.add(sKey);
-        sendDebug(`HAP s:${sKey} note:${hap.value?.note} freq:${hap.value?.freq} keys:${Object.keys(hap.value||{}).join(',')}`);
+      // Debug: log tag info once per unique sample
+      if (!this._loggedTags) this._loggedTags = new Set();
+      const tagKey = `${hap.value?.s || 'synth'}_${(hap.context?.tags || []).join(',')}`;
+      if (!this._loggedTags.has(tagKey)) {
+        this._loggedTags.add(tagKey);
+        sendDebug(`TAG s:${hap.value?.s} tags:[${hap.context?.tags || 'none'}] trackFx:${JSON.stringify(trackFx)}`);
       }
 
-      const s = hap.value?.s;
-      const note = hap.value?.note;
       const gain = hap.value?.gain ?? 1;
       const velocity = hap.value?.velocity ?? 1;
       const intensity = gain * velocity;
 
-      // Kick → radial burst
-      if (s === 'bd' || s === 'kick') {
-        this.effects.burst = Math.max(this.effects.burst, 8 * intensity);
-      }
+      // Route by track tag if trackFx is assigned
+      const tag = this._getTrackTag(hap);
+      const assignedFx = tag && trackFx?.[tag];
 
-      // Clap/snare → orbit speed pulse
-      if (s === 'cp' || s === 'clap' || s === 'sd' || s === 'sn') {
-        this.effects.orbitPulse = Math.max(this.effects.orbitPulse, 3 * intensity);
+      if (assignedFx === 'none') {
+        continue; // skip — no visual effect
+      } else if (assignedFx && assignedFx !== 'pad') {
+        // Explicit assignment (not auto, not pad, not none)
+        this._fireEffect(assignedFx, hap, intensity);
+      } else if (!assignedFx) {
+        // Auto — use sample-name-based detection
+        this._autoDetect(hap, intensity);
       }
-
-      // Perc → tangential push
-      if (s === 'rim' || s === 'clave' || s === 'cowbell') {
-        this.effects.tangent = Math.max(this.effects.tangent, 24 * intensity);
-      }
-
-      // Hats → jitter (sparkle)
-      if (s === 'hh' || s === 'oh' || s === 'ch') {
-        this.effects.jitter = Math.max(this.effects.jitter, 20 * intensity);
-      }
-
-      // Stab → brightness flash (short percussive synth, high note)
-      const synthSet = ['sawtooth', 'sine', 'triangle', 'square'];
-      if (synthSet.includes(s) && note != null) {
-        const midi = typeof note === 'number' ? note : this._noteToMidi(note);
-        const dur = hap.duration ? Number(hap.duration) : (hap.whole ? Number(hap.whole.end) - Number(hap.whole.begin) : 1);
-        if (midi != null && midi >= 48 && dur < 0.5) {
-          this.effects.flash = Math.max(this.effects.flash, 1.5 * intensity);
-          sendDebug(`STAB note:${note} midi:${midi} dur:${dur.toFixed(2)} flash:${this.effects.flash.toFixed(2)}`);
-        }
-      }
-
-      // Bass → orbit swell (low notes expand the cloud)
-      if (note != null) {
-        // note can be string "a1" or number. Convert to MIDI if needed.
-        let midi = typeof note === 'number' ? note : this._noteToMidi(note);
-        if (midi != null && midi < 52) { // below E3 = bass territory
-          // Lower pitch = bigger swell. Map midi 24-52 → swell 1.5-1.1
-          // Lower pitch = bigger swell. Map midi 24-52 → swell 1.8-1.3
-          const swellAmount = 1.3 + (1 - (midi - 24) / 28) * 0.5;
-          this.effects.swell = Math.max(this.effects.swell, swellAmount);
-          sendDebug(`BASS note:${note} midi:${midi} swell:${this.effects.swell.toFixed(2)}`);
-        }
-      }
+      // 'pad' assigned tracks: onset effects skipped, pad detection below handles them
     }
 
-    // Pad detection — only activate for chords whose onset we witnessed
-    // (avoids visual leading audio when unmuting mid-chord)
+    // Pad detection — only from tracks with fx="pad" or auto (with synth samples)
     const padSynthSet = ['sawtooth', 'sine', 'triangle', 'square'];
     const chordMidis = [];
 
-    // First pass: check if any chord notes have onsets this frame → mark as witnessed
+    const isPadHap = (hap) => {
+      const tag = this._getTrackTag(hap);
+      const assignedFx = tag && trackFx?.[tag];
+      if (assignedFx === 'pad') return true;
+      if (assignedFx === 'none') return false;
+      if (assignedFx) return false; // explicitly assigned to something else
+      // Auto: use original synth-based detection
+      return padSynthSet.includes(hap.value?.s) && hap.value?.note != null;
+    };
+
+    // First pass: check if any pad-eligible notes have onsets this frame
     for (const hap of haps) {
       if (!hap.hasOnset()) continue;
-      const s = hap.value?.s;
-      const note = hap.value?.note;
-      if (!padSynthSet.includes(s) || note == null) continue;
+      if (!isPadHap(hap)) continue;
       const begin = Number(hap.whole?.begin);
       const hapId = `pad_${begin}`;
       if (!this.seenHaps.has(hapId)) {
         this.seenHaps.add(hapId);
         this._activeChordBegin = begin;
-        sendDebug(`PAD onset begin:${begin.toFixed(2)} time:${time.toFixed(2)}`);
       }
     }
 
-    // Second pass: collect chord notes, but only from the chord we witnessed
+    // Second pass: collect chord notes from the witnessed chord
     for (const hap of haps) {
-      const s = hap.value?.s;
+      if (!isPadHap(hap)) continue;
       const note = hap.value?.note;
-      if (!padSynthSet.includes(s) || note == null) continue;
+      if (note == null) continue;
       const begin = Number(hap.whole?.begin);
       const end = Number(hap.whole?.end);
       if (begin > time || end <= time) continue;
-      // Only include if we witnessed this chord's onset
       if (begin !== this._activeChordBegin) continue;
       const midi = typeof note === 'number' ? note : this._noteToMidi(note);
       if (midi != null) chordMidis.push(midi);
     }
+
     if (chordMidis.length >= 3) {
       chordMidis.sort((a, b) => a - b);
 
-      // Compute tension from all pairwise intervals
       let totalDissonance = 0;
       let pairs = 0;
       for (let i = 0; i < chordMidis.length; i++) {
@@ -423,20 +469,13 @@ export class CurlParticles {
           pairs++;
         }
       }
-      const tension = pairs > 0 ? totalDissonance / pairs : 0; // 0-1
+      const tension = pairs > 0 ? totalDissonance / pairs : 0;
 
       const root = chordMidis[0];
-      // Root pitch → noise scale (low = big smooth features, high = tight)
-      this.effects.noiseScale = 0.4 + (root - 24) / 48 * 1.0; // ~0.4-1.4
-
-      // Tension → evolution speed (calm=1x, tense=5x)
+      this.effects.noiseScale = 0.4 + (root - 24) / 48 * 1.0;
       this.effects.noiseEvolution = 1 + tension * 4;
-      // Tension → flow strength (calm=1x, tense=3x)
       this.effects.noiseStrength = 1 + tension * 2;
-      // Tension → orbit looseness (calm=1x tight, tense=0.2x loose)
       this.effects.orbitEase = 1 - tension * 0.8;
-
-      sendDebug(`CHORD [${chordMidis}] tension:${tension.toFixed(2)} evo:${this.effects.noiseEvolution.toFixed(1)} str:${this.effects.noiseStrength.toFixed(1)} ease:${this.effects.orbitEase.toFixed(2)}`);
     }
   }
 

@@ -32,7 +32,7 @@ if (typeof window !== 'undefined') {
 // Track Editor — StrudelMirror per track (vis + highlighting)
 // ============================================================
 
-function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, viz, started, vizMode, onCodeChange, onMute, onSolo, onRemove, onGroupChange, onVizChange }) {
+function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, fx, viz, started, vizMode, onCodeChange, onMute, onSolo, onRemove, onGroupChange, onVizChange, onFxChange }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const mirrorRef = useRef(null);
@@ -207,6 +207,22 @@ function TrackPanel({ id, code, muted, solo, group, effectivelyMuted, viz, start
             <option value="active">active</option>
           </select>
           <select
+            value={fx || ''}
+            onChange={(e) => onFxChange(id, e.target.value || null)}
+            className="w-16 px-0.5 py-0.5 rounded text-xs font-mono bg-background text-foreground border border-lineHighlight cursor-pointer text-center appearance-none"
+            title="Particle effect"
+          >
+            <option value="">auto</option>
+            <option value="none">none</option>
+            <option value="burst">burst</option>
+            <option value="swell">swell</option>
+            <option value="orbitPulse">orbit</option>
+            <option value="jitter">jitter</option>
+            <option value="tangent">tangent</option>
+            <option value="flash">flash</option>
+            <option value="pad">pad</option>
+          </select>
+          <select
             value={group ?? ''}
             onChange={(e) => onGroupChange(id, e.target.value === '' ? null : Number(e.target.value))}
             className="w-10 px-0.5 py-0.5 rounded text-xs font-mono bg-background text-foreground border border-lineHighlight cursor-pointer text-center appearance-none"
@@ -306,7 +322,7 @@ function GlobalFxEditor({ code, onChange }) {
 
 export function Mixer() {
   const [tracks, setTracks] = useState({});      // { id: code }
-  const [mixState, setMixState] = useState({ muted: [], solo: [], bpm: null, globalFx: '', groups: {} });
+  const [mixState, setMixState] = useState({ muted: [], solo: [], bpm: null, globalFx: '', groups: {}, trackFx: {} });
   const [vizTypes, setVizTypes] = useState({});  // { trackId: 'pianoroll' | 'punchcard' | null }
   const [started, setStarted] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -315,6 +331,10 @@ export function Mixer() {
   const masterContainerRef = useRef(null);
   const curlRef = useRef(null);
   const debounceTimers = useRef({});
+  const mixStateRef = useRef(mixState);
+  mixStateRef.current = mixState;
+  const tracksRef = useRef(tracks);
+  tracksRef.current = tracks;
 
   // Init master StrudelMirror (hidden, handles all audio)
   const initMaster = useCallback(() => {
@@ -394,7 +414,7 @@ export function Mixer() {
       const origDraw = master.onDraw.bind(master);
       master.onDraw = (haps, time, painters) => {
         origDraw(haps, time, painters);
-        curlRef.current?.update(haps, time);
+        curlRef.current?.update(haps, time, mixStateRef.current?.trackFx);
       };
     }
 
@@ -499,6 +519,21 @@ export function Mixer() {
     setVizTypes(prev => ({ ...prev, [id]: vizType }));
   }, []);
 
+  // Track FX assignment (per-track particle effect)
+  const handleFxChange = useCallback((id, fx) => {
+    setMixState(prev => {
+      const trackFx = { ...prev.trackFx };
+      if (fx === null) {
+        delete trackFx[id];
+      } else {
+        trackFx[id] = fx;
+      }
+      const next = { ...prev, trackFx };
+      sendMixerState(next);
+      return next;
+    });
+  }, []);
+
   // Group assignment
   const handleGroupChange = useCallback((id, group) => {
     setMixState(prev => {
@@ -515,11 +550,6 @@ export function Mixer() {
   }, []);
 
   // Keyboard: number keys toggle mute for track groups
-  const mixStateRef = useRef(mixState);
-  mixStateRef.current = mixState;
-  const tracksRef = useRef(tracks);
-  tracksRef.current = tracks;
-
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't fire when typing in an input/editor
@@ -648,6 +678,7 @@ export function Mixer() {
             solo={isSoloed}
             effectivelyMuted={effectivelyMuted}
             group={mixState.groups?.[id] ?? null}
+            fx={mixState.trackFx?.[id] || null}
             viz={vizTypes[id] || null}
             started={started}
             vizMode={vizMode}
@@ -656,6 +687,7 @@ export function Mixer() {
             onSolo={handleSolo}
             onRemove={handleRemove}
             onGroupChange={handleGroupChange}
+            onFxChange={handleFxChange}
             onVizChange={handleVizChange}
           />;
         })}

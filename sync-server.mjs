@@ -107,6 +107,7 @@ function compile() {
     if (shouldMute) {
       trackCode = trackCode.replace(/^\$:/, '_$:');
     }
+    trackCode += `.tag('${id}')`;
     code += trackCode + '\n\n';
   }
 
