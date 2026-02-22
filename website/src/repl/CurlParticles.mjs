@@ -108,10 +108,8 @@ export class CurlParticles {
     // Effect accumulators
     this.effects = {
       burst: 0,
-      swell: 1, // 1 = no swell, >1 = expanded orbits
-      driftAngle: 0,
-      driftIntensity: 0,
-      scatter: 0,
+      swell: 1,        // 1 = no swell, >1 = expanded orbits
+      orbitPulse: 0,    // clap: orbit speed multiplier, decay 0.92
     };
 
     // Create canvas
@@ -186,13 +184,15 @@ export class CurlParticles {
 
     // Decay swell back to 1
     fx.swell += (1 - fx.swell) * 0.03;
+    // Decay orbit pulse
+    fx.orbitPulse *= 0.92;
 
     const cx = this.centerX;
     const cy = this.centerY;
 
     for (const p of particles) {
-      // Slow orbit around center
-      p.orbitAngle += p.orbitSpeed;
+      // Slow orbit around center + clap pulse adds angular kick
+      p.orbitAngle += p.orbitSpeed + fx.orbitPulse * 0.02;
 
       // Gentle curl noise displacement on top of orbit
       const [nx, ny] = this.curl(p.x / params.scale, p.y / params.scale);
@@ -289,6 +289,12 @@ export class CurlParticles {
       // Kick → radial burst
       if (s === 'bd' || s === 'kick') {
         this.effects.burst = Math.max(this.effects.burst, 8 * intensity);
+      }
+
+      // Clap/snare → orbit speed pulse
+      if (s === 'cp' || s === 'clap' || s === 'sd' || s === 'sn') {
+        this.effects.orbitPulse = Math.max(this.effects.orbitPulse, 3 * intensity);
+        sendDebug(`CLAP s:${s} orbitPulse:${this.effects.orbitPulse.toFixed(2)}`);
       }
 
       // Bass → orbit swell (low notes expand the cloud)
