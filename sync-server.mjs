@@ -100,11 +100,14 @@ function compile() {
   for (const id of sortedIds) {
     const isMuted = muted.includes(id);
     const isSoloed = solo.includes(id);
-    if (hasSolo && !isSoloed) continue;
-    if (isMuted) continue;
+    const shouldMute = isMuted || (hasSolo && !isSoloed);
 
     code += `// == ${id} ==\n`;
-    code += tracks[id].trim() + '\n\n';
+    let trackCode = tracks[id].trim();
+    if (shouldMute) {
+      trackCode = trackCode.replace(/^\$:/, '_$:');
+    }
+    code += trackCode + '\n\n';
   }
 
   if (globalFx?.trim()) {
