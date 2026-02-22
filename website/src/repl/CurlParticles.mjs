@@ -90,7 +90,7 @@ function createNoise2D() {
 export class CurlParticles {
   constructor(options = {}) {
     const {
-      count = 1200,
+      count = 3000,
       scale = 200,
       speed = 0.2,
       evolution = 0.001,
@@ -105,14 +105,13 @@ export class CurlParticles {
     this.foreground = false;
     this.seenHaps = new Set(); // track processed onsets by identity
 
-    // Effect accumulators (for Phase 2 — music reactivity)
+    // Effect accumulators
     this.effects = {
       burst: 0,
+      swell: 1, // 1 = no swell, >1 = expanded orbits
       driftAngle: 0,
       driftIntensity: 0,
       scatter: 0,
-      flowSpeed: 1,
-      attractPull: 0,
     };
 
     // Create canvas
@@ -185,6 +184,9 @@ export class CurlParticles {
     const burstNow = fx.burst;
     fx.burst = 0;
 
+    // Decay swell back to 1
+    fx.swell += (1 - fx.swell) * 0.03;
+
     const cx = this.centerX;
     const cy = this.centerY;
 
@@ -196,8 +198,9 @@ export class CurlParticles {
       const [nx, ny] = this.curl(p.x / params.scale, p.y / params.scale);
       const noiseStrength = params.speed;
 
-      const targetX = cx + Math.cos(p.orbitAngle) * p.orbitRadius;
-      const targetY = cy + Math.sin(p.orbitAngle) * p.orbitRadius;
+      const swelledRadius = p.orbitRadius * fx.swell;
+      const targetX = cx + Math.cos(p.orbitAngle) * swelledRadius;
+      const targetY = cy + Math.sin(p.orbitAngle) * swelledRadius;
 
       // Update base position — ease toward orbit + noise
       p.x += (targetX - p.x) * 0.02 + nx * noiseStrength;
@@ -226,6 +229,20 @@ export class CurlParticles {
     this.raf = requestAnimationFrame(() => this.animate());
   }
 
+  _noteToMidi(note) {
+    if (typeof note === 'number') return note;
+    if (typeof note !== 'string') return null;
+    const match = note.match(/^([a-gA-G])(#|b)?(\d+)$/);
+    if (!match) return null;
+    const semis = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
+    let midi = semis[match[1].toLowerCase()];
+    if (midi == null) return null;
+    if (match[2] === '#') midi++;
+    if (match[2] === 'b') midi--;
+    midi += (parseInt(match[3]) + 1) * 12;
+    return midi;
+  }
+
   setForeground(fg) {
     this.foreground = fg;
     this.canvas.style.zIndex = fg ? 5 : 1;
@@ -236,6 +253,10 @@ export class CurlParticles {
   }
 
   update(haps, time) {
+    if (!this._callCount) this._callCount = 0;
+    this._callCount++;
+    if (this._callCount % 300 === 1) sendDebug(`update called #${this._callCount} haps:${haps.length}`);
+
     // Clean old entries from seenHaps (keep last 200)
     if (this.seenHaps.size > 200) {
       const entries = [...this.seenHaps];
@@ -251,9 +272,16 @@ export class CurlParticles {
       if (this.seenHaps.has(hapId)) continue;
       this.seenHaps.add(hapId);
 
-      const s = hap.value?.s;
-      if (!s) continue;
+      // Debug: log all hap values (temporary)
+      if (!this._loggedSamples) this._loggedSamples = new Set();
+      const sKey = hap.value?.s || 'none';
+      if (!this._loggedSamples.has(sKey)) {
+        this._loggedSamples.add(sKey);
+        sendDebug(`HAP s:${sKey} note:${hap.value?.note} freq:${hap.value?.freq} keys:${Object.keys(hap.value||{}).join(',')}`);
+      }
 
+      const s = hap.value?.s;
+      const note = hap.value?.note;
       const gain = hap.value?.gain ?? 1;
       const velocity = hap.value?.velocity ?? 1;
       const intensity = gain * velocity;
@@ -261,10 +289,21 @@ export class CurlParticles {
       // Kick → radial burst
       if (s === 'bd' || s === 'kick') {
         this.effects.burst = Math.max(this.effects.burst, 8 * intensity);
-        kicked = true;
+      }
+
+      // Bass → orbit swell (low notes expand the cloud)
+      if (note != null) {
+        // note can be string "a1" or number. Convert to MIDI if needed.
+        let midi = typeof note === 'number' ? note : this._noteToMidi(note);
+        if (midi != null && midi < 52) { // below E3 = bass territory
+          // Lower pitch = bigger swell. Map midi 24-52 → swell 1.5-1.1
+          // Lower pitch = bigger swell. Map midi 24-52 → swell 1.8-1.3
+          const swellAmount = 1.3 + (1 - (midi - 24) / 28) * 0.5;
+          this.effects.swell = Math.max(this.effects.swell, swellAmount);
+          sendDebug(`BASS note:${note} midi:${midi} swell:${this.effects.swell.toFixed(2)}`);
+        }
       }
     }
-    if (kicked) sendDebug(`KICK burst:${this.effects.burst.toFixed(1)} seen:${this.seenHaps.size} t:${time.toFixed(4)}`);
   }
 
   destroy() {
