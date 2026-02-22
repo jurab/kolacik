@@ -1,0 +1,15 @@
+{
+  "muted": [],
+  "solo": [],
+  "bpm": 128,
+  "globalFx": ".shape(.1).hpf(25)",
+  "groups": {
+    "kick": 1,
+    "clap": 1,
+    "hats": 1,
+    "perc": 1,
+    "bass": 2,
+    "pad": 3,
+    "stab": 3
+  }
+}

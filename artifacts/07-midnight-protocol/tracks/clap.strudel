@@ -1,0 +1,2 @@
+// Clap — beats 2 and 4, slight room verb
+$: s("~ cp ~ cp").gain(0.55).hpf(200).room(0.15).roomsize(2)

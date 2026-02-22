@@ -1,0 +1,6 @@
+// Acid bass — sawtooth, filter envelope sweep, Welsh Cookbook style
+$: note("<d1 d1 d1 [d1 f1]>")
+  .s("sawtooth")
+  .lpf(400).lpq(8).lpenv(4).lpdecay(0.2)
+  .attack(0.005).decay(0.15).sustain(0.6).release(0.1)
+  .shape(0.3).gain(0.7)

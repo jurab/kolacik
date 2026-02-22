@@ -1,0 +1,5 @@
+// Congas and shaker — funky Latin percussion
+$: stack(
+  s("~ ~ ~ tabla ~ tabla ~ ~").gain(0.3).pan(0.65),
+  s("shaker*8").gain("0.15 0.08 0.12 0.08 0.15 0.08 0.12 0.1").hpf(500).pan(0.7)
+)

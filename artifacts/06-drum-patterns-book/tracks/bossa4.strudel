@@ -1,0 +1,8 @@
+// Bossa Nova 4 — 260 Drum Machine Patterns p.19
+$: stack(
+  s("hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~"),
+  s("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ oh"),
+  s("~ ~ ~ ~ ~ ~ sd ~ ~ ~ ~ ~ sd ~ ~ ~"),
+  s("rim ~ ~ rim ~ ~ rim ~ ~ rim ~ ~ rim ~ ~ rim"),
+  s("bd ~ ~ bd ~ ~ bd ~ ~ ~ bd ~ ~ ~ ~ ~")
+)

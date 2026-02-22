@@ -1,0 +1,15 @@
+{
+  "muted": [],
+  "solo": [],
+  "bpm": 130,
+  "globalFx": "",
+  "groups": {
+    "kick": 1,
+    "hats": 1,
+    "clap": 1,
+    "perc": 1,
+    "bass": 2,
+    "pad": 3,
+    "lead": 3
+  }
+}

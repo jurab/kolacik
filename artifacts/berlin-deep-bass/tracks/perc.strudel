@@ -1,0 +1,3 @@
+$: s("[~ rim ~ ~] [~ ~ rim ~]").gain(.5)
+  .delay(.25).delaytime(.25).delayfeedback(.5)
+  .pan(sine.range(.3,.7).slow(4)).orbit(2)

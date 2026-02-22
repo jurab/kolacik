@@ -1,0 +1,1 @@
+$: s("bd bd bd bd").lpf(200).shape(.4).gain(1.2)

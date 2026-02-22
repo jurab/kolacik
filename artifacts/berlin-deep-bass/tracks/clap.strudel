@@ -1,0 +1,2 @@
+$: s("~ cp ~ ~").gain(.8)
+  .room(.6).size(.8).orbit(3)

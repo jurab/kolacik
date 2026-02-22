@@ -1,0 +1,8 @@
+// Funk 1 — 260 Drum Machine Patterns p.30
+$: stack(
+  s("hh ~ hh ~ hh ~ hh hh hh ~ hh ~ hh ~ hh hh"),
+  s("~ ~ ~ ~ ~ ~ ~ oh ~ ~ ~ ~ ~ ~ ~ ~"),
+  s("~ ~ ~ ~ sd ~ ~ sd ~ ~ ~ ~ sd ~ ~ ~"),
+  s("bd ~ bd ~ ~ ~ bd ~ ~ ~ bd ~ bd ~ ~ ~"),
+  s("~ ~ ~ ~ rim ~ ~ ~ ~ ~ ~ ~ rim ~ ~ ~")
+)

@@ -309,7 +309,6 @@ export function Mixer() {
   const [connected, setConnected] = useState(false);
   const masterRef = useRef(null);
   const masterContainerRef = useRef(null);
-  const playOnceTimerRef = useRef(null);
   const debounceTimers = useRef({});
 
   // Init master StrudelMirror (hidden, handles all audio)
@@ -375,8 +374,6 @@ export function Mixer() {
       masterRef.current?.stop();
     } else if (msg.type === 'toggle') {
       masterRef.current?.toggle();
-    } else if (msg.type === 'play-once') {
-      playOnce();
     }
   }, []);
 
@@ -532,22 +529,6 @@ export function Mixer() {
     if (masterRef.current) {
       masterRef.current.stop();
     }
-    if (playOnceTimerRef.current) {
-      clearTimeout(playOnceTimerRef.current);
-      playOnceTimerRef.current = null;
-    }
-  }, []);
-
-  const playOnce = useCallback(() => {
-    if (!masterRef.current) return;
-    masterRef.current.evaluate();
-    const cps = masterRef.current.repl.scheduler.cps || 0.5;
-    const cycleDurationMs = (1 / cps) * 1000;
-    if (playOnceTimerRef.current) clearTimeout(playOnceTimerRef.current);
-    playOnceTimerRef.current = setTimeout(() => {
-      masterRef.current?.stop();
-      playOnceTimerRef.current = null;
-    }, cycleDurationMs + 150);
   }, []);
 
   const sortedTrackIds = Object.keys(tracks).sort();
@@ -555,28 +536,23 @@ export function Mixer() {
   return (
     <div className="bg-background text-foreground">
       {/* Top bar */}
-      <div className="fixed top-0 left-0 right-0 z-10 flex items-center gap-2 px-4 py-2 border-b border-lineHighlight" style={{ backgroundColor: '#1a1a1a' }}>
+      <div id="mixer-toolbar" className="fixed top-0 left-0 right-0 z-10 flex items-center gap-2 px-4 py-2 border-b border-lineHighlight" style={{ backgroundColor: '#1a1a1a' }}>
         <span className="font-mono text-sm font-bold mr-2">kolacik mixer</span>
 
         <button
+          id="btn-play"
           onClick={started ? handleStop : handlePlayAll}
-          className={`px-3 py-1 rounded text-sm font-mono cursor-pointer ${
+          className={`w-24 py-1 rounded text-sm font-mono cursor-pointer text-center ${
             started ? 'bg-green-700 text-white animate-pulse' : 'bg-background text-foreground hover:bg-green-700'
           }`}
         >
           {started ? '■ stop' : '▶ play all'}
         </button>
 
-        <button
-          onClick={playOnce}
-          className="px-3 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-blue-700 cursor-pointer"
-        >
-          ▶1
-        </button>
-
-        <div className="flex items-center gap-1 ml-4">
+        <div id="bpm-control" className="flex items-center gap-1 ml-4">
           <label className="text-xs font-mono text-foreground opacity-60">BPM</label>
           <input
+            id="bpm-input"
             type="number"
             value={mixState.bpm ?? ''}
             onChange={(e) => handleBpmChange(e.target.value)}
@@ -586,6 +562,7 @@ export function Mixer() {
         </div>
 
         <button
+          id="btn-mute-all"
           onClick={() => {
             setMixState(prev => {
               const allIds = Object.keys(tracks);
@@ -601,13 +578,14 @@ export function Mixer() {
         </button>
 
         <button
+          id="btn-add-track"
           onClick={handleAddTrack}
           className="px-3 py-1 rounded text-sm font-mono bg-background text-foreground hover:bg-green-700 cursor-pointer ml-auto"
         >
           + track
         </button>
 
-        <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} title={connected ? 'connected' : 'disconnected'} />
+        <div id="sync-status" className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} title={connected ? 'connected' : 'disconnected'} />
       </div>
 
       {/* Track panels */}

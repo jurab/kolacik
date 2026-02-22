@@ -155,6 +155,13 @@ export async function prebake() {
     ),
   ]);
 
+  // Local samples
+  await samples(
+    { hwr: ['hwr/0.wav'] },
+    `${baseNoTrailing}/samples/`,
+    { prebake: true },
+  );
+
   aliasBank(`${baseCDN}/tidal-drum-machines-alias.json`);
 }
 

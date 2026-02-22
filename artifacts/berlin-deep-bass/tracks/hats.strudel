@@ -1,0 +1,4 @@
+$: s("~ hh ~ hh ~ [hh hh] ~ hh")
+  .gain(".5 .4 .5 .6 .5 .4 .5 .7")
+  .hpf(7000).delay(.3).delaytime(.375).delayfeedback(.4)
+  .orbit(2)

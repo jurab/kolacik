@@ -1,0 +1,4 @@
+$: note("[~ ~ a3 ~] [~ ~ ~ ~] [~ ~ g3 ~] [~ ~ ~ f3]")
+  .s("square").lpf(1500).decay(.15).sustain(0)
+  .gain(.3).delay(.5).delaytime(.375).delayfeedback(.6)
+  .pan(saw.range(.2,.8).slow(3)).orbit(3)

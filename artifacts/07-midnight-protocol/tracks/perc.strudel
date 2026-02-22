@@ -1,0 +1,2 @@
+// Metallic perc — rimshots and clicks for groove
+$: s("~ ~ rim ~ ~ rim ~ rim").gain(0.35).hpf(400).pan(0.7)

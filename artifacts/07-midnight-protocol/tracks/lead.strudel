@@ -1,0 +1,7 @@
+// FM bell lead — inharmonic metallic tones
+$: note("~ d4 ~ [a3 f4] ~ ~ e4 ~").slow(2)
+  .s("sine").fm(3).fmh(2.5)
+  .fmdecay(0.3).fmsustain(0.1)
+  .lpf(3000).attack(0.01).decay(0.4).sustain(0.1).release(0.5)
+  .gain(0.3).pan(0.6)
+  .delay(0.3).delaytime(0.375).delayfeedback(0.4)

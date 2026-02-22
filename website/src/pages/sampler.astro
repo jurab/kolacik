@@ -1,0 +1,14 @@
+---
+import HeadCommon from '../components/HeadCommon.astro';
+import { Sampler } from '../repl/Sampler';
+---
+
+<html lang="en" class="m-0 dark">
+  <head>
+    <HeadCommon />
+    <title>Kolacik Sample Sandbox</title>
+  </head>
+  <body class="bg-background m-0">
+    <Sampler client:only="react" />
+  </body>
+</html>

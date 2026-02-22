@@ -1,0 +1,10 @@
+// Afro-Cuban 1 — 260 Drum Machine Patterns p.8
+$: stack(
+  s("hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~"),
+  s("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ oh"),
+  s("~ ~ ~ hh:4 ~ ~ ~ ~ ~ ~ ~ hh:4 ~ ~ ~ ~"),
+  s("~ ~ ~ ~ ~ ~ hh:3 ~ ~ ~ ~ ~ ~ ~ hh:3 ~").gain(0.7),
+  s("~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~"),
+  s("~ ~ rim ~ ~ ~ rim ~ ~ ~ rim ~ ~ ~ rim ~"),
+  s("bd ~ ~ bd ~ ~ bd ~ bd ~ ~ ~ bd ~ ~ ~")
+)

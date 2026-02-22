@@ -1,0 +1,2 @@
+// Kick — 4-on-the-floor with pitch envelope punch
+$: s("bd bd bd bd").gain(0.85)

@@ -1,0 +1,7 @@
+// Rock 1 — 260 Drum Machine Patterns p.60
+$: stack(
+  s("hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~"),
+  s("~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~"),
+  s("~ ~ ~ ~ rim ~ ~ ~ ~ ~ ~ ~ rim ~ ~ ~"),
+  s("bd ~ ~ bd ~ ~ ~ ~ bd ~ bd ~ ~ ~ ~ ~")
+)

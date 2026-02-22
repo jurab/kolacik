@@ -1,0 +1,6 @@
+$: note("<[a2,e3,c4] [f2,c3,a3]>").slow(4)
+  .s("sawtooth").lpf(sine.range(400,1200).slow(16))
+  .attack(.5).decay(2).sustain(.4).release(2)
+  .gain(.25).room(.7).size(.9)
+  .delay(.4).delaytime(.5).delayfeedback(.5)
+  .orbit(4)

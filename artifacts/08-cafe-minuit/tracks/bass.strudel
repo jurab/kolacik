@@ -1,0 +1,6 @@
+// Funky bass — square wave, syncopated, filter pluck
+$: note("<[d2 ~ d2 ~ ~ d2 f2 ~] [g2 ~ g2 ~ ~ g2 a2 ~]>")
+  .s("square")
+  .lpf(600).lpq(4).lpenv(3).lpdecay(0.12)
+  .attack(0.005).decay(0.2).sustain(0.5).release(0.08)
+  .shape(0.2).gain(0.65)

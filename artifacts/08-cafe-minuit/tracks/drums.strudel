@@ -1,0 +1,6 @@
+// Breakbeat — syncopated kick/snare with ghost notes
+$: stack(
+  s("bd ~ ~ bd ~ ~ bd ~").gain(0.8),
+  s("~ ~ sd ~ ~ ~ sd ~").gain(0.6),
+  s("~ ~ ~ ~ sd:1 ~ ~ ~").gain(0.25)
+)

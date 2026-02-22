@@ -1,0 +1,7 @@
+// Pad — wide supersaw, slow filter modulation
+$: note("<[d3,f3,a3] [c3,e3,g3] [bb2,d3,f3] [a2,c3,e3]>").slow(4)
+  .s("supersaw").spread(0.8).detune(0.15)
+  .lpf(1200).lpq(2).lpsync(8).lpdepth(600)
+  .attack(0.8).decay(0.5).sustain(0.7).release(1.5)
+  .gain(0.25).room(0.3).roomsize(4)
+  .jux(rev)

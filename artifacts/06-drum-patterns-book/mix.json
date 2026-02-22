@@ -1,0 +1,25 @@
+{
+  "muted": [
+    "rock1",
+    "bossa4",
+    "afrocuban1",
+    "disco1",
+    "funk1",
+    "pop1",
+    "reggae5",
+    "rnb5"
+  ],
+  "solo": [],
+  "bpm": 64,
+  "globalFx": "",
+  "groups": {
+    "afrocuban1": 1,
+    "funk1": 2,
+    "disco1": 3,
+    "rock1": 4,
+    "reggae5": 5,
+    "bossa4": 6,
+    "pop1": 7,
+    "rnb5": 8
+  }
+}

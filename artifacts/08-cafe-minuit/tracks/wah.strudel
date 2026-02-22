@@ -1,0 +1,7 @@
+// Wah guitar — sawtooth with LFO filter sweep
+$: note("<[~ d3 ~ d3 ~ ~ d3 d3] [~ g3 ~ g3 ~ ~ g3 a3]>")
+  .s("sawtooth")
+  .lpf(800).lpq(6).lpsync(2).lpdepth(1200)
+  .attack(0.01).decay(0.15).sustain(0.4).release(0.1)
+  .shape(0.15).gain(0.25)
+  .juxBy(0.5, x => x.add(note(12)))

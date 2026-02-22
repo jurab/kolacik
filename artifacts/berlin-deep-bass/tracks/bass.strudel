@@ -1,0 +1,4 @@
+$: note("<a1 [a1 g1] f1 [f1 e1]>")
+  .s("sawtooth").lpf(sine.range(200,800).slow(8))
+  .resonance(12).decay(.3).sustain(.2)
+  .shape(.3).gain(.7).orbit(1)

@@ -1,0 +1,7 @@
+// Rhodes — sine + FM for bell-like electric piano
+$: note("<[~ [d3,f3,a3,c4] ~ ~] [~ [g3,b3,d4,f4] ~ ~]>")
+  .s("sine").fm(1.5).fmh(7).fmdecay(0.08)
+  .lpf(2500)
+  .attack(0.005).decay(0.6).sustain(0.3).release(0.4)
+  .gain(0.35).room(0.2).roomsize(2)
+  .pan(0.4)

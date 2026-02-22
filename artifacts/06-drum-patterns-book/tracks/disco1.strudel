@@ -1,0 +1,7 @@
+// Disco 1 — 260 Drum Machine Patterns p.23
+$: stack(
+  s("hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~"),
+  s("~ oh ~ oh ~ oh ~ oh ~ oh ~ oh ~ oh ~ oh"),
+  s("~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~"),
+  s("bd ~ ~ ~ bd ~ ~ ~ bd ~ ~ ~ bd ~ ~ ~")
+)

@@ -1,0 +1,8 @@
+// Flute lead — breathy triangle wave, sparse melody
+$: note("~ ~ d4 ~ f4 ~ ~ e4 ~ ~ a3 ~ ~ ~ ~ ~").slow(2)
+  .s("triangle")
+  .lpf(3500).lpq(1)
+  .attack(0.08).decay(0.3).sustain(0.5).release(0.6)
+  .noise(0.03).vib(5).vibmod(0.3)
+  .gain(0.3).pan(0.6)
+  .delay(0.2).delaytime(0.5).delayfeedback(0.3)
