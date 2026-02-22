@@ -4,7 +4,7 @@
 
 set -e
 
-NAME="${1:?Usage: ./save-piece.sh <name>}"
+NAME="${1:?Usage: scripts/save-piece.sh <name>}"
 DIR="artifacts/$NAME"
 
 if [ -d "$DIR" ]; then

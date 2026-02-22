@@ -68,8 +68,8 @@ Per-track visualization dropdown: punchcard, pianoroll, wordfall, smear, active.
 Save and load complete mixer states:
 
 ```bash
-./save-piece.sh my-jam      # → artifacts/my-jam/ (tracks + mix.json)
-./load-piece.sh my-jam      # ← restores tracks + state
+scripts/save-piece.sh my-jam      # → artifacts/my-jam/ (tracks + mix.json)
+scripts/load-piece.sh my-jam      # ← restores tracks + state
 ```
 
 ### Compiler

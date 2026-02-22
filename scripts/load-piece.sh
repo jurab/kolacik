@@ -4,7 +4,7 @@
 
 set -e
 
-NAME="${1:?Usage: ./load-piece.sh <name>}"
+NAME="${1:?Usage: scripts/load-piece.sh <name>}"
 DIR="artifacts/$NAME"
 
 if [ ! -d "$DIR" ]; then

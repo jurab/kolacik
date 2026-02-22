@@ -16,6 +16,19 @@ const PORT = 4322;
 // Ensure tracks dir exists
 if (!existsSync(TRACKS_DIR)) mkdirSync(TRACKS_DIR);
 
+// Truncate debug log if over 1MB
+const MAX_DEBUG_SIZE = 1024 * 1024;
+try {
+  const { size } = await stat(DEBUG_FILE);
+  if (size > MAX_DEBUG_SIZE) {
+    const content = await readFile(DEBUG_FILE, 'utf-8');
+    const lines = content.split('\n');
+    const tail = lines.slice(-1000).join('\n');
+    await writeFile(DEBUG_FILE, tail);
+    console.log(`Truncated ${DEBUG_FILE} from ${(size / 1024 / 1024).toFixed(1)}MB to last 1000 lines`);
+  }
+} catch {}
+
 const wss = new WebSocketServer({ port: PORT });
 const clients = new Set();
 
