@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-export function MixerToolbar({ started, connected, bpm, vizMode, pieces, currentPiece, allMuted, onPlay, onStop, onBpmChange, onMuteAll, onClearTracks, onVizToggle, onSavePiece, onLoadPiece }) {
+export function MixerToolbar({ started, connected, bpm, vizMode, pieces, currentPiece, allMuted, transparentBg, onPlay, onStop, onBpmChange, onMuteAll, onClearTracks, onVizToggle, onTransparencyToggle, onSavePiece, onLoadPiece }) {
   const [trashArmed, setTrashArmed] = useState(false);
   const trashTimer = useRef(null);
   const [saveEditing, setSaveEditing] = useState(false);
@@ -121,6 +121,15 @@ export function MixerToolbar({ started, connected, bpm, vizMode, pieces, current
 
       {/* ── Center zone: knob controls (V, Play, M) ── */}
       <div className="flex items-center gap-3" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+        <button
+          className="mixer-knob"
+          onClick={onTransparencyToggle}
+          title="Toggle transparent background (T)"
+          style={{ borderColor: transparentBg ? 'var(--mixer-accent)' : undefined, color: transparentBg ? 'var(--mixer-accent)' : undefined }}
+        >
+          T
+        </button>
+
         <button
           className="mixer-knob"
           onClick={onVizToggle}

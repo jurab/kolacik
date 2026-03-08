@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicerdicer/tauri-v2-schema/master/tauri.conf.json",
+  "productName": "kolacik",
+  "version": "0.1.0",
+  "identifier": "cc.kolacik.mixer",
+  "build": {
+    "devUrl": "http://localhost:4321/mixer",
+    "frontendDist": "http://localhost:4321/mixer"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Kolacik Mixer",
+        "width": 1200,
+        "height": 800,
+        "transparent": true,
+        "decorations": true,
+        "resizable": true
+      }
+    ],
+    "macOSPrivateApi": true
+  }
+}

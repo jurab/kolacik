@@ -45,6 +45,7 @@ export function Mixer() {
   const [started, setStarted] = useState(false);
   const [connected, setConnected] = useState(false);
   const [vizMode, setVizMode] = useState(false);
+  const [transparentBg, setTransparentBg] = useState(false);
   const [currentPiece, setCurrentPiece] = useState(null);
   const masterRef = useRef(null);
   const masterContainerRef = useRef(null);
@@ -156,6 +157,19 @@ export function Mixer() {
     curlRef.current?.setForeground(vizMode);
   }, [vizMode]);
 
+  // Transparency mode — toggle body + CSS var backgrounds
+  useEffect(() => {
+    if (transparentBg) {
+      document.body.style.background = 'transparent';
+      document.documentElement.style.setProperty('--mixer-bg', 'rgba(10,10,10,0.7)');
+      document.documentElement.style.setProperty('--mixer-panel', 'rgba(17,17,17,0.75)');
+    } else {
+      document.body.style.background = '#0a0a0a';
+      document.documentElement.style.setProperty('--mixer-bg', '#0a0a0a');
+      document.documentElement.style.setProperty('--mixer-panel', '#111');
+    }
+  }, [transparentBg]);
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.code === 'MediaPlayPause') {
@@ -165,6 +179,7 @@ export function Mixer() {
         return;
       }
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.cm-editor')) return;
+      if (e.code === 'KeyT') setTransparentBg(t => !t);
       if (e.code === 'KeyV') setVizMode(v => !v);
       if (e.code === 'KeyP') {
         if (masterRef.current?.repl?.scheduler?.started) masterRef.current.stop();
@@ -367,12 +382,14 @@ export function Mixer() {
         pieces={pieces}
         currentPiece={currentPiece}
         allMuted={sortedTrackIds.length > 0 && sortedTrackIds.every(id => mixState.muted?.includes(id))}
+        transparentBg={transparentBg}
         onPlay={handlePlayAll}
         onStop={handleStop}
         onBpmChange={handleBpmChange}
         onMuteAll={handleMuteAll}
         onClearTracks={handleClearTracks}
         onVizToggle={() => setVizMode(v => !v)}
+        onTransparencyToggle={() => setTransparentBg(t => !t)}
         onSavePiece={handleSavePiece}
         onLoadPiece={handleLoadPiece}
       />
